@@ -38,35 +38,56 @@ const Chat = () => {
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response with mock data
-    setTimeout(() => {
+    try {
+      // Call the hadith-chat edge function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [
+              ...messages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+              })),
+              { role: "user", content: input }
+            ],
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
       const assistantMessage: Message = {
         role: "assistant",
-        content: "The Prophet ﷺ emphasized the importance of charity given in secret. Secret charity is considered a form of sincere worship, as it protects the giver from pride and ensures the deed is done purely for Allah's sake.",
-        citations: [
-          {
-            collection: "Sahih al-Bukhari",
-            hadithNumber: "1423",
-            narrator: "Abu Hurairah",
-            url: "https://sunnah.com/bukhari:1423",
-            translation: "The Prophet (ﷺ) said, 'Seven people will be shaded by Allah under His shade on the day when there will be no shade except His. They are: (1) a just ruler; (2) a young man who has been brought up in the worship of Allah, (i.e. worship Allah (Alone) sincerely from his childhood), (3) a man whose heart is attached to the mosque, (4) two persons who love each other only for Allah's sake and they meet and part in Allah's cause only, (5) a man who refuses the call of a charming woman of noble birth for an illegal sexual intercourse with her and says: I am afraid of Allah, (6) a person who practices charity so secretly that his left hand does not know what his right hand has given (i.e. nobody knows how much he has given in charity). (7) a person who remembers Allah in seclusion and his eyes become flooded with tears.'",
-            arabic: "قَالَ النَّبِيُّ صلى الله عليه وسلم ‏ سَبْعَةٌ يُظِلُّهُمُ اللَّهُ تَعَالَى فِي ظِلِّهِ يَوْمَ لاَ ظِلَّ إِلاَّ ظِلُّهُ..."
-          },
-          {
-            collection: "Sahih Muslim",
-            hadithNumber: "1031",
-            narrator: "Abu Hurairah",
-            url: "https://sunnah.com/muslim:1031",
-            translation: "The Prophet (ﷺ) said: 'Charity does not decrease wealth, no one forgives another except that Allah increases his honor, and no one humbles himself for the sake of Allah except that Allah raises his status.'",
-            arabic: "قَالَ رَسُولُ اللَّهِ صلى الله عليه وسلم ‏ مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ..."
-          }
-        ],
+        content: data.content,
+        citations: data.citations || [],
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Error calling hadith-chat:", error);
+      
+      // Show error message to user
+      const errorMessage: Message = {
+        role: "assistant",
+        content: `I apologize, but I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please try again.`,
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
