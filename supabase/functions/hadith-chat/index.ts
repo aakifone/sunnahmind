@@ -22,40 +22,36 @@ serve(async (req) => {
 
 CRITICAL RULES:
 1. Source ALL factual claims from sunnah.com - no outside sources, encyclopedias, or speculation
-2. EVERY answer must include explicit citations in this format:
-   - Collection name (e.g., "Sahih al-Bukhari")
-   - Hadith number
-   - Narrator name (if available)
-   - URL to sunnah.com
-
+2. EVERY answer must include explicit citations that EXACTLY MATCH the hadiths you quote in your response
 3. If no relevant hadith exists on sunnah.com, say: "I could not find a relevant hadith on sunnah.com for this query."
-
 4. NEVER provide fatwas (religious rulings). If asked for a ruling, quote relevant hadiths and explicitly state: "This is not a ruling. For personal rulings, consult qualified scholars."
-
 5. Maintain a respectful, neutral, and humble tone at all times.
 
-RESPONSE STRUCTURE:
-1. Concise summary (1-3 sentences)
-2. Quoted hadith text (exact translation from sunnah.com)
-3. Citations for each hadith
-4. Optional contextual notes about authenticity or variant wordings
-5. Always end with: "💡 These citations are from sunnah.com. For religious rulings, please consult qualified scholars."
+RESPONSE FORMAT:
+Write your response text first (with summary and quoted hadiths), then add citations in JSON format.
 
-Format citations as a JSON array in your response that can be parsed, like this:
+IMPORTANT: The citations JSON MUST contain ONLY the hadiths you actually quoted in your text above. Each hadith in the text must have a matching citation entry.
+
+Example response structure:
+
+Based on sunnah.com, the Prophet ﷺ said about patience: "Patience is at the first stroke of grief."
+
+This hadith teaches us that true patience is demonstrated in the initial moments of difficulty.
+
 CITATIONS_START
 [
   {
     "collection": "Sahih al-Bukhari",
-    "hadithNumber": "1234",
-    "narrator": "Abu Hurairah",
-    "url": "https://sunnah.com/bukhari:1234",
-    "translation": "Full hadith text here...",
-    "arabic": "Arabic text if available"
+    "hadithNumber": "1302",
+    "narrator": "Anas bin Malik",
+    "url": "https://sunnah.com/bukhari:1302",
+    "translation": "The Prophet (ﷺ) passed by a woman who was weeping beside a grave. He told her to fear Allah and be patient. She said to him, 'Go away, for you have not been afflicted with a calamity like mine.' And she did not recognize him. Then she was informed that he was the Prophet (ﷺ). So she went to the house of the Prophet (ﷺ) and there she did not find any guard. Then she said to him, 'I did not recognize you.' He said, 'Verily, the patience is at the first stroke of a calamity.'",
+    "arabic": "إِنَّمَا الصَّبْرُ عِنْدَ الصَّدْمَةِ الأُولَى"
   }
 ]
 CITATIONS_END
 
-Place the citations JSON after your main response text.`;
+Always end with: "💡 These citations are from sunnah.com. For religious rulings, please consult qualified scholars."`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -105,6 +101,8 @@ Place the citations JSON after your main response text.`;
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
 
+    console.log("AI Response received:", content.substring(0, 200));
+
     // Parse citations from the response
     let mainContent = content;
     let citations = [];
@@ -112,11 +110,26 @@ Place the citations JSON after your main response text.`;
     const citationsMatch = content.match(/CITATIONS_START\s*([\s\S]*?)\s*CITATIONS_END/);
     if (citationsMatch) {
       try {
-        citations = JSON.parse(citationsMatch[1]);
-        mainContent = content.replace(/CITATIONS_START[\s\S]*?CITATIONS_END/, "").trim();
+        const citationsJson = citationsMatch[1].trim();
+        console.log("Parsing citations JSON:", citationsJson.substring(0, 200));
+        citations = JSON.parse(citationsJson);
+        console.log("Successfully parsed citations:", citations.length, "citations found");
+        
+        // Remove the CITATIONS block from the content
+        mainContent = content.replace(/CITATIONS_START[\s\S]*?CITATIONS_END/g, "").trim();
       } catch (e) {
         console.error("Failed to parse citations:", e);
+        console.error("Citations text was:", citationsMatch[1]);
+        // If parsing fails, leave citations empty but still remove the block
+        mainContent = content.replace(/CITATIONS_START[\s\S]*?CITATIONS_END/g, "").trim();
       }
+    } else {
+      console.log("No CITATIONS_START/END block found in response");
+    }
+
+    // Ensure the ending note is present
+    if (!mainContent.includes("💡 These citations are from sunnah.com")) {
+      mainContent += "\n\n💡 These citations are from sunnah.com. For religious rulings, please consult qualified scholars.";
     }
 
     return new Response(
