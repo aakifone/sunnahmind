@@ -22,36 +22,32 @@ serve(async (req) => {
 
 CRITICAL RULES:
 1. Source ALL factual claims from sunnah.com - no outside sources, encyclopedias, or speculation
-2. EVERY answer must include explicit citations that EXACTLY MATCH the hadiths you quote in your response
+2. ALWAYS provide citations for hadiths you reference
 3. If no relevant hadith exists on sunnah.com, say: "I could not find a relevant hadith on sunnah.com for this query."
 4. NEVER provide fatwas (religious rulings). If asked for a ruling, quote relevant hadiths and explicitly state: "This is not a ruling. For personal rulings, consult qualified scholars."
 5. Maintain a respectful, neutral, and humble tone at all times.
 
 RESPONSE FORMAT:
-Write your response text first (with summary and quoted hadiths), then add citations in JSON format.
+1. Write a clear, well-formatted answer with proper paragraphs
+2. Quote hadiths clearly when referencing them
+3. Then provide citations in a separate JSON block
 
-IMPORTANT: The citations JSON MUST contain ONLY the hadiths you actually quoted in your text above. Each hadith in the text must have a matching citation entry.
+CRITICAL JSON FORMATTING RULES:
+- Escape ALL quotes in the translation text using \" 
+- Keep JSON on single lines without line breaks in string values
+- Replace actual quotes in hadith text with escaped quotes
 
-Example response structure:
+Example response:
 
 Based on sunnah.com, the Prophet ﷺ said about patience: "Patience is at the first stroke of grief."
 
 This hadith teaches us that true patience is demonstrated in the initial moments of difficulty.
 
 CITATIONS_START
-[
-  {
-    "collection": "Sahih al-Bukhari",
-    "hadithNumber": "1302",
-    "narrator": "Anas bin Malik",
-    "url": "https://sunnah.com/bukhari:1302",
-    "translation": "The Prophet (ﷺ) passed by a woman who was weeping beside a grave. He told her to fear Allah and be patient. She said to him, 'Go away, for you have not been afflicted with a calamity like mine.' And she did not recognize him. Then she was informed that he was the Prophet (ﷺ). So she went to the house of the Prophet (ﷺ) and there she did not find any guard. Then she said to him, 'I did not recognize you.' He said, 'Verily, the patience is at the first stroke of a calamity.'",
-    "arabic": "إِنَّمَا الصَّبْرُ عِنْدَ الصَّدْمَةِ الأُولَى"
-  }
-]
+[{"collection":"Sahih al-Bukhari","hadithNumber":"1302","narrator":"Anas bin Malik","url":"https://sunnah.com/bukhari:1302","translation":"The Prophet (peace be upon him) said: Verily, the patience is at the first stroke of a calamity.","arabic":"إِنَّمَا الصَّبْرُ عِنْدَ الصَّدْمَةِ الأُولَى"}]
 CITATIONS_END
 
-Always end with: "💡 These citations are from sunnah.com. For religious rulings, please consult qualified scholars."`;
+💡 These citations are from sunnah.com. For religious rulings, please consult qualified scholars.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -110,8 +106,14 @@ Always end with: "💡 These citations are from sunnah.com. For religious ruling
     const citationsMatch = content.match(/CITATIONS_START\s*([\s\S]*?)\s*CITATIONS_END/);
     if (citationsMatch) {
       try {
-        const citationsJson = citationsMatch[1].trim();
-        console.log("Parsing citations JSON:", citationsJson.substring(0, 200));
+        let citationsJson = citationsMatch[1].trim();
+        console.log("Raw citations text:", citationsJson.substring(0, 300));
+        
+        // Try to clean up common JSON issues
+        // Remove line breaks within strings that might break JSON
+        citationsJson = citationsJson.replace(/\n\s*/g, ' ');
+        
+        console.log("Cleaned citations JSON:", citationsJson.substring(0, 300));
         citations = JSON.parse(citationsJson);
         console.log("Successfully parsed citations:", citations.length, "citations found");
         
@@ -119,7 +121,7 @@ Always end with: "💡 These citations are from sunnah.com. For religious ruling
         mainContent = content.replace(/CITATIONS_START[\s\S]*?CITATIONS_END/g, "").trim();
       } catch (e) {
         console.error("Failed to parse citations:", e);
-        console.error("Citations text was:", citationsMatch[1]);
+        console.error("Full citations text:", citationsMatch[1]);
         // If parsing fails, leave citations empty but still remove the block
         mainContent = content.replace(/CITATIONS_START[\s\S]*?CITATIONS_END/g, "").trim();
       }

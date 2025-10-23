@@ -49,7 +49,11 @@ const ChatMessage = ({ role, content, citations, timestamp }: ChatMessageProps) 
     <div className="flex justify-start mb-6">
       <div className="max-w-[80%] md:max-w-[70%]">
         <div className="bg-card border border-border/50 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
-          <p className="text-sm leading-relaxed mb-4">{content}</p>
+          <div className="text-sm leading-relaxed mb-4 space-y-3">
+            {content.split('\n\n').map((paragraph, idx) => (
+              <p key={idx} className="whitespace-pre-wrap">{paragraph}</p>
+            ))}
+          </div>
 
           {/* Citations Section */}
           {citations && citations.length > 0 && (
