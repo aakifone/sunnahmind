@@ -5,6 +5,7 @@ import { ArrowLeft, Send, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
 import Header from "@/components/Header";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   role: "user" | "assistant";
@@ -15,10 +16,11 @@ interface Message {
 
 const Chat = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "السلام عليكم! I'm here to help answer your questions about Hadith using only verified content from sunnah.com. Every answer I provide will include specific citations you can verify. What would you like to know?",
+      content: "السلام عليكم! I'm your Hadith Assistant. I search sunnah.com in real-time to find authentic hadiths that answer your questions. Each response includes 1-4 verified citations with direct links. What would you like to know about the teachings of Prophet Muhammad ﷺ?",
       timestamp: new Date(),
     }
   ]);
@@ -77,7 +79,14 @@ const Chat = () => {
     } catch (error) {
       console.error("Error calling hadith-chat:", error);
       
-      // Show error message to user
+      // Show error toast to user
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to get response. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Show error message in chat
       const errorMessage: Message = {
         role: "assistant",
         content: `I apologize, but I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please try again.`,
@@ -118,10 +127,13 @@ const Chat = () => {
 
             {isLoading && (
               <div className="flex justify-start mb-6">
-                <div className="bg-card border border-border/50 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Sparkles className="w-4 h-4 animate-pulse" />
-                    <span className="text-sm">Searching sunnah.com...</span>
+                <div className="bg-card border border-border/50 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm animate-pulse">
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <Sparkles className="w-5 h-5 animate-spin text-accent" />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-medium">Searching sunnah.com...</span>
+                      <span className="text-xs opacity-70">Finding relevant authentic hadiths</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -135,11 +147,11 @@ const Chat = () => {
             <div className="flex gap-2 items-end">
               <div className="flex-1 relative">
                 <Textarea
-                  placeholder="Ask a question about Hadith... (e.g., 'What did the Prophet ﷺ say about charity?')"
+                  placeholder="Ask about any topic... (e.g., 'What did the Prophet ﷺ say about charity?', 'Hadiths about patience', 'Prayer guidance')"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="min-h-[60px] max-h-[200px] resize-none pr-12 bg-background border-border/50 focus:border-accent"
+                  className="min-h-[60px] max-h-[200px] resize-none pr-12 bg-background border-border/50 focus:border-accent transition-colors"
                   disabled={isLoading}
                 />
               </div>
@@ -154,7 +166,7 @@ const Chat = () => {
             </div>
 
             <p className="text-xs text-muted-foreground mt-2 text-center">
-              All answers are sourced exclusively from sunnah.com • Not for issuing fatwas
+              Real-time search of sunnah.com • 1-4 verified citations per answer • Not for issuing fatwas
             </p>
           </div>
         </div>
