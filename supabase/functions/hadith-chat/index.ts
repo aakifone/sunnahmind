@@ -5,41 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Function to search sunnah.com for relevant hadiths
-async function searchSunnahCom(query: string): Promise<string> {
-  try {
-    const searchUrl = `https://sunnah.com/search?q=${encodeURIComponent(query)}`;
-    console.log("Searching sunnah.com:", searchUrl);
-    
-    const response = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    if (!response.ok) {
-      console.error("Sunnah.com search failed:", response.status);
-      return "Search unavailable";
-    }
-    
-    const html = await response.text();
-    
-    // Extract hadith references from the HTML
-    // Look for hadith links in the format: sunnah.com/bukhari:123, sunnah.com/muslim:456
-    const hadithMatches = html.match(/sunnah\.com\/[a-z-]+:\d+/gi) || [];
-    const uniqueHadiths = [...new Set(hadithMatches)].slice(0, 6); // Get up to 6 unique hadiths
-    
-    console.log("Found hadiths:", uniqueHadiths);
-    
-    if (uniqueHadiths.length === 0) {
-      return "No hadiths found for this query.";
-    }
-    
-    return `Found ${uniqueHadiths.length} relevant hadiths on sunnah.com: ${uniqueHadiths.join(", ")}`;
-  } catch (error) {
-    console.error("Error searching sunnah.com:", error);
-    return "Search error occurred";
-  }
+// Function to provide context about searching sunnah.com
+function getSunnahComContext(query: string): string {
+  const searchUrl = `https://sunnah.com/search?q=${encodeURIComponent(query)}`;
+  console.log("Query context for:", query);
+  return `User is searching for: "${query}". Sunnah.com search URL: ${searchUrl}`;
 }
 
 serve(async (req) => {
@@ -59,23 +29,30 @@ serve(async (req) => {
     const userQuestion = messages[messages.length - 1]?.content || "";
     console.log("User question:", userQuestion);
 
-    // Search sunnah.com for relevant hadiths
-    const searchResults = await searchSunnahCom(userQuestion);
-    console.log("Search results:", searchResults);
+    const searchContext = getSunnahComContext(userQuestion);
+    console.log("Search context:", searchContext);
 
-    const systemPrompt = `You are a specialized Islamic Q&A assistant that provides answers using hadiths from sunnah.com.
+    const systemPrompt = `You are a specialized Islamic Q&A assistant with deep knowledge of authentic hadiths from sunnah.com.
 
 CRITICAL INSTRUCTIONS:
-1. You have access to actual search results from sunnah.com showing available hadiths
-2. You MUST provide between 1-4 hadith citations (minimum 1, maximum 4)
-3. Each citation MUST include: collection, hadithNumber, narrator, url, translation, and arabic text
-4. Answer the user's question directly and clearly
-5. Use ONLY hadiths that are relevant to the specific question asked
-6. Format your response with clear paragraphs
+1. You have extensive knowledge of authentic hadiths from major collections (Bukhari, Muslim, Abu Dawud, Tirmidhi, Ibn Majah, Nasa'i)
+2. You MUST provide between 1-4 hadith citations (minimum 1, maximum 4) that are DIRECTLY relevant to the question
+3. Each citation MUST include: collection, hadithNumber, narrator, url (format: https://sunnah.com/collection:number), translation, and arabic text
+4. Answer the user's question directly with authentic hadiths you know
+5. Use ONLY hadiths that directly address the specific question
+6. Format your response with clear paragraphs explaining how the hadiths answer the question
 7. NEVER provide fatwas (religious rulings) - always say "For religious rulings, consult qualified scholars"
 
-AVAILABLE HADITHS FROM SEARCH:
-${searchResults}
+SEARCH CONTEXT:
+${searchContext}
+
+IMPORTANT - HADITH URL FORMAT:
+- Sahih Bukhari: https://sunnah.com/bukhari:NUMBER
+- Sahih Muslim: https://sunnah.com/muslim:NUMBER
+- Abu Dawud: https://sunnah.com/abudawud:NUMBER
+- Tirmidhi: https://sunnah.com/tirmidhi:NUMBER
+- Ibn Majah: https://sunnah.com/ibnmajah:NUMBER
+- Nasa'i: https://sunnah.com/nasai:NUMBER
 
 RESPONSE FORMAT:
 Write a clear answer (2-4 paragraphs) that:
@@ -86,17 +63,25 @@ Write a clear answer (2-4 paragraphs) that:
 Then provide citations in this EXACT format:
 
 CITATIONS_START
-[{"collection":"Sahih Muslim","hadithNumber":"2588","narrator":"Abu Hurairah","url":"https://sunnah.com/muslim:2588","translation":"The Messenger of Allah said: Charity does not decrease wealth.","arabic":"ما نقصت صدقة من مال"}]
+[{"collection":"Sahih Muslim","hadithNumber":"2588","narrator":"Abu Hurairah","url":"https://sunnah.com/muslim:2588","translation":"The Messenger of Allah (peace be upon him) said: Charity does not decrease wealth, and Allah increases a servant in honor when he forgives others.","arabic":"ما نقص مال من صدقة"}]
 CITATIONS_END
 
 CRITICAL RULES:
-- Minimum 1 citation, maximum 4 citations
-- URLs must be real sunnah.com links from the search results
+- You MUST provide 1-4 authentic hadith citations for every question
+- Use your knowledge of authentic hadiths from the six major collections
+- URLs must follow the exact format: https://sunnah.com/collection:number (all lowercase collection name)
+- Provide actual hadith text in both English translation and Arabic
+- Include the narrator's name
 - Escape all quotes in JSON with \"
-- Keep JSON on a single line
-- End with the disclaimer note
+- Keep JSON on a single line between CITATIONS_START and CITATIONS_END
+- Always end with the disclaimer note
 
-If no relevant hadiths found, say: "I could not find relevant hadiths on sunnah.com for this specific query."`;
+EXAMPLES OF PROPER CITATIONS:
+Question about charity: Cite Bukhari 1442, Muslim 2588 about charity not decreasing wealth
+Question about patience: Cite Bukhari 5645, Muslim 2999 about patience in hardship
+Question about prayer: Cite Bukhari 528, Muslim 251 about prayer importance
+
+You have this knowledge - use it to help the user with authentic hadiths!`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
