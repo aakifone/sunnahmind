@@ -90,19 +90,19 @@ const ChatMessage = ({ role, content, citations, timestamp }: ChatMessageProps) 
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-9 px-3 hover:bg-accent/20 hover:text-accent transition-all"
+                        className="h-9 px-3 hover:bg-accent/20 hover:text-accent transition-all duration-200 hover:scale-110"
                         onClick={() => toggleCitation(index)}
                       >
                         {expandedCitations[index] ? (
-                          <ChevronUp className="w-4 h-4" />
+                          <ChevronUp className="w-4 h-4 transition-transform duration-200" />
                         ) : (
-                          <ChevronDown className="w-4 h-4" />
+                          <ChevronDown className="w-4 h-4 transition-transform duration-200" />
                         )}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-9 px-3 hover:bg-accent/20 hover:text-accent transition-all"
+                        className="h-9 px-3 hover:bg-accent/20 hover:text-accent transition-all duration-200 hover:scale-110"
                         asChild
                       >
                         <a 
@@ -133,7 +133,7 @@ const ChatMessage = ({ role, content, citations, timestamp }: ChatMessageProps) 
                           href={citation.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-accent hover:text-accent/80 transition-colors font-semibold bg-accent/10 px-4 py-2 rounded-lg hover:bg-accent/20"
+                          className="inline-flex items-center gap-2 text-sm text-accent hover:text-accent/80 transition-all duration-200 font-semibold bg-accent/10 px-4 py-2 rounded-lg hover:bg-accent/20 hover:gap-3"
                         >
                           View full hadith on sunnah.com
                           <ExternalLink className="w-4 h-4" />

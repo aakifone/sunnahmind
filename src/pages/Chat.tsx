@@ -125,13 +125,18 @@ const Chat = () => {
         <div className="flex-1 overflow-y-auto px-4 py-6 paper-texture">
           <div className="max-w-4xl mx-auto">
             {messages.map((message, index) => (
-              <ChatMessage
+              <div
                 key={index}
-                role={message.role}
-                content={message.content}
-                citations={message.citations}
-                timestamp={message.timestamp}
-              />
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
+                <ChatMessage
+                  role={message.role}
+                  content={message.content}
+                  citations={message.citations}
+                  timestamp={message.timestamp}
+                />
+              </div>
             ))}
 
             {isLoading && (
@@ -169,7 +174,7 @@ const Chat = () => {
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading}
                 size="lg"
-                className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm hover:shadow-gold-glow transition-all"
+                className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm hover:shadow-gold-glow transition-all duration-300 hover:scale-105"
               >
                 <Send className="w-5 h-5" />
               </Button>
