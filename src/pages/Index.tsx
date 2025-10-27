@@ -103,17 +103,6 @@ const Index = () => {
                 sunnah.com
               </a>
             </p>
-            <div className="flex justify-center gap-6 text-sm">
-              <a href="#" className="text-muted-foreground hover:text-accent transition-colors">
-                Privacy Policy
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-accent transition-colors">
-                Contact
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-accent transition-colors">
-                About
-              </a>
-            </div>
             <p className="text-xs text-muted-foreground">
               © 2025 Hadith AI. For educational purposes only.
             </p>

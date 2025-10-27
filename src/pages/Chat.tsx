@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Sparkles, LogOut, LogIn } from "lucide-react";
+import { Send, Sparkles, LogOut, LogIn, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
 import ConversationSidebar from "@/components/ConversationSidebar";
@@ -313,6 +313,15 @@ const Chat = () => {
         {/* Header */}
         <div className="border-b border-border/40 bg-card/50 backdrop-blur px-6 py-4">
           <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2 hover:bg-accent/10"
+            >
+              <Home className="w-4 h-4" />
+              <span>Home</span>
+            </Button>
             <h1 className="text-xl font-bold gold-text">Hadith Assistant</h1>
             {session?.user ? (
               <Button

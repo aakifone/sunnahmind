@@ -21,7 +21,6 @@ const Header = () => {
             </div>
             <div className="flex flex-col items-start">
               <span className="text-lg font-bold leading-none">Hadith AI</span>
-              <span className="text-xs text-muted-foreground">via Sunnah.com</span>
             </div>
           </button>
 
@@ -48,9 +47,9 @@ const Header = () => {
             <Button 
               variant="outline" 
               className="border-accent/30 hover:bg-accent/10 hover:border-accent"
-              onClick={() => navigate('/chat')}
+              onClick={() => navigate('/auth')}
             >
-              Try Chat
+              Sign In
             </Button>
           </div>
 
@@ -84,11 +83,11 @@ const Header = () => {
               <Button 
                 className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
                 onClick={() => {
-                  navigate('/chat');
+                  navigate('/auth');
                   setMobileMenuOpen(false);
                 }}
               >
-                Try Chat
+                Sign In
               </Button>
             </nav>
           </div>

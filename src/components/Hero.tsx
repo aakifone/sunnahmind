@@ -28,12 +28,27 @@ const Hero = () => {
           </div>
 
           {/* Main Heading */}
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight">
-            Ask Questions About
-            <span className="block bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-              Hadith & Sunnah
-            </span>
-          </h1>
+          <div className="space-y-4">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight" style={{ 
+              background: 'var(--gradient-gold)', 
+              WebkitBackgroundClip: 'text', 
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              السلام عليكم ورحمة الله وبركاته
+            </h1>
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold leading-tight">
+              Ask Questions About
+              <span className="block" style={{ 
+                background: 'var(--gradient-emerald)', 
+                WebkitBackgroundClip: 'text', 
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                Hadith & Sunnah
+              </span>
+            </h2>
+          </div>
 
           {/* Description */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
@@ -45,7 +60,7 @@ const Hero = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
             <Button 
               size="lg" 
-              className="group bg-primary hover:bg-primary/90 text-primary-foreground shadow-elegant hover:shadow-gold-glow transition-all"
+              className="group bg-[hsl(160,65%,45%)] hover:bg-[hsl(160,65%,40%)] text-white shadow-elegant hover:shadow-lg transition-all"
               onClick={() => navigate('/chat')}
             >
               Start Asking Questions
