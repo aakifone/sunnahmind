@@ -34,7 +34,7 @@ const Hero = () => {
             <Button 
               size="lg" 
               className="group bg-primary hover:bg-primary/90 text-primary-foreground shadow-elegant hover:shadow-gold-glow transition-all"
-              onClick={() => navigate('/chat')}
+              onClick={() => navigate('/auth')}
             >
               Start Asking Questions
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />

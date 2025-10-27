@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
-import Header from "@/components/Header";
+import ConversationSidebar from "@/components/ConversationSidebar";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
 
 interface Message {
   role: "user" | "assistant";
@@ -18,26 +20,135 @@ const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "السلام عليكم! I'm your Hadith Assistant. I search sunnah.com in real-time to find authentic hadiths that answer your questions. Each response includes 1-4 verified citations with direct links. What would you like to know about the teachings of Prophet Muhammad ﷺ?",
+      content: "السلام عليكم! I'm your Hadith Assistant. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
       timestamp: new Date(),
     }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  useEffect(() => {
+    // Check authentication
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const createNewConversation = async () => {
+    if (!session?.user) return null;
+
+    const { data, error } = await supabase
+      .from("conversations")
+      .insert({
+        user_id: session.user.id,
+        title: "New Conversation",
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create conversation",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    return data.id;
+  };
+
+  const saveMessage = async (conversationId: string, message: Message) => {
+    const { error } = await supabase
+      .from("chat_messages")
+      .insert({
+        conversation_id: conversationId,
+        role: message.role,
+        content: message.content,
+        citations: message.citations || null,
+      });
+
+    if (error) {
+      console.error("Error saving message:", error);
+    }
+  };
+
+  const loadConversation = async (conversationId: string) => {
+    const { data, error } = await supabase
+      .from("chat_messages")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load conversation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const loadedMessages: Message[] = data.map((msg) => ({
+      role: msg.role as "user" | "assistant",
+      content: msg.content,
+      citations: msg.citations as any[],
+      timestamp: new Date(msg.created_at),
+    }));
+
+    setMessages(loadedMessages);
+    setCurrentConversationId(conversationId);
+  };
+
+  const handleNewConversation = () => {
+    setCurrentConversationId(null);
+    setMessages([
+      {
+        role: "assistant",
+        content: "السلام عليكم! I'm your Hadith Assistant. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
+        timestamp: new Date(),
+      }
+    ]);
+  };
+
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !session?.user) return;
+
+    let conversationId = currentConversationId;
+
+    // Create new conversation if none exists
+    if (!conversationId) {
+      conversationId = await createNewConversation();
+      if (!conversationId) return;
+      setCurrentConversationId(conversationId);
+    }
 
     const userMessage: Message = {
       role: "user",
@@ -46,11 +157,11 @@ const Chat = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    await saveMessage(conversationId, userMessage);
     setInput("");
     setIsLoading(true);
 
     try {
-      // Call the hadith-chat edge function
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
         {
@@ -85,17 +196,25 @@ const Chat = () => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      await saveMessage(conversationId!, assistantMessage);
+
+      // Update conversation title with first user message
+      if (messages.length === 1) {
+        const title = input.slice(0, 50) + (input.length > 50 ? "..." : "");
+        await supabase
+          .from("conversations")
+          .update({ title })
+          .eq("id", conversationId);
+      }
     } catch (error) {
       console.error("Error calling hadith-chat:", error);
       
-      // Show error toast to user
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to get response. Please try again.",
         variant: "destructive",
       });
       
-      // Show error message in chat
       const errorMessage: Message = {
         role: "assistant",
         content: `I apologize, but I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please try again.`,
@@ -115,12 +234,41 @@ const Chat = () => {
     }
   };
 
-  return (
-    <div className="flex flex-col h-screen bg-background">
-      <Header />
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
 
-      {/* Chat Container */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+  if (!session) {
+    return null;
+  }
+
+  return (
+    <div className="flex h-screen bg-background">
+      <ConversationSidebar
+        currentConversationId={currentConversationId}
+        onSelectConversation={loadConversation}
+        onNewConversation={handleNewConversation}
+        userId={session.user.id}
+      />
+
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="border-b border-border/40 bg-card/50 backdrop-blur px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold gold-text">Hadith Assistant</h1>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </Button>
+          </div>
+        </div>
+
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto px-4 py-6 paper-texture">
           <div className="max-w-4xl mx-auto">
@@ -145,8 +293,8 @@ const Chat = () => {
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <Sparkles className="w-5 h-5 animate-spin text-accent" />
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">Searching sunnah.com...</span>
-                      <span className="text-xs opacity-70">Finding relevant authentic hadiths</span>
+                      <span className="text-sm font-medium">Searching authentic hadiths...</span>
+                      <span className="text-xs opacity-70">Finding relevant citations</span>
                     </div>
                   </div>
                 </div>
@@ -162,7 +310,7 @@ const Chat = () => {
             <div className="flex gap-2 items-end">
               <div className="flex-1 relative">
                 <Textarea
-                  placeholder="Ask about any topic... (e.g., 'What did the Prophet ﷺ say about charity?', 'Hadiths about patience', 'Prayer guidance')"
+                  placeholder="Ask about any topic... (e.g., 'What did the Prophet ﷺ say about charity?')"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -181,7 +329,7 @@ const Chat = () => {
             </div>
 
             <p className="text-xs text-muted-foreground mt-2 text-center">
-              Real-time search of sunnah.com • 1-4 verified citations per answer • Not for issuing fatwas
+              Authentic hadiths from sunnah.com • Not for issuing fatwas
             </p>
           </div>
         </div>

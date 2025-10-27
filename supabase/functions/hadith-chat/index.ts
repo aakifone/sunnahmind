@@ -148,9 +148,9 @@ USER QUESTION: "${userQuestion}"`;
       console.warn("No CITATIONS_START/END block found in response");
     }
 
-    // Ensure the ending note is present
-    if (!mainContent.includes("💡")) {
-      mainContent += "\n\n💡 These citations are from sunnah.com. For religious rulings, please consult qualified scholars.";
+    // Ensure the ending note is present (keep only one version)
+    if (!mainContent.includes("💡 Important:")) {
+      mainContent += "\n\n💡 Important: These authentic hadiths are sourced from sunnah.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.";
     }
 
     return new Response(
