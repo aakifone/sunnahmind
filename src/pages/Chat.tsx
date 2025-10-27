@@ -1,13 +1,23 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Sparkles, LogOut } from "lucide-react";
+import { Send, Sparkles, LogOut, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
 import ConversationSidebar from "@/components/ConversationSidebar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Message {
   role: "user" | "assistant";
@@ -31,27 +41,21 @@ const Chat = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showSignUpDialog, setShowSignUpDialog] = useState(false);
+  const [hasAskedFirstQuestion, setHasAskedFirstQuestion] = useState(false);
 
   useEffect(() => {
-    // Check authentication
+    // Check authentication (but don't redirect, allow anonymous usage)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
       setSession(session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
       setSession(session);
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -139,12 +143,18 @@ const Chat = () => {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || !session?.user) return;
+    if (!input.trim()) return;
+
+    // Show sign up dialog after first question for anonymous users
+    if (!session?.user && !hasAskedFirstQuestion) {
+      setHasAskedFirstQuestion(true);
+      setShowSignUpDialog(true);
+    }
 
     let conversationId = currentConversationId;
 
-    // Create new conversation if none exists
-    if (!conversationId) {
+    // Create new conversation if user is logged in and none exists
+    if (session?.user && !conversationId) {
       conversationId = await createNewConversation();
       if (!conversationId) return;
       setCurrentConversationId(conversationId);
@@ -157,7 +167,12 @@ const Chat = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
-    await saveMessage(conversationId, userMessage);
+    
+    // Only save message if user is logged in
+    if (session?.user && conversationId) {
+      await saveMessage(conversationId, userMessage);
+    }
+    
     setInput("");
     setIsLoading(true);
 
@@ -196,15 +211,19 @@ const Chat = () => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      await saveMessage(conversationId!, assistantMessage);
+      
+      // Only save message and update title if user is logged in
+      if (session?.user && conversationId) {
+        await saveMessage(conversationId, assistantMessage);
 
-      // Update conversation title with first user message
-      if (messages.length === 1) {
-        const title = input.slice(0, 50) + (input.length > 50 ? "..." : "");
-        await supabase
-          .from("conversations")
-          .update({ title })
-          .eq("id", conversationId);
+        // Update conversation title with first user message
+        if (messages.length === 1) {
+          const title = input.slice(0, 50) + (input.length > 50 ? "..." : "");
+          await supabase
+            .from("conversations")
+            .update({ title })
+            .eq("id", conversationId);
+        }
       }
     } catch (error) {
       console.error("Error calling hadith-chat:", error);
@@ -239,33 +258,83 @@ const Chat = () => {
     navigate("/");
   };
 
-  if (!session) {
-    return null;
-  }
-
   return (
     <div className="flex h-screen bg-background">
-      <ConversationSidebar
-        currentConversationId={currentConversationId}
-        onSelectConversation={loadConversation}
-        onNewConversation={handleNewConversation}
-        userId={session.user.id}
-      />
+      {/* Only show sidebar if user is logged in */}
+      {session?.user && (
+        <ConversationSidebar
+          currentConversationId={currentConversationId}
+          onSelectConversation={loadConversation}
+          onNewConversation={handleNewConversation}
+          userId={session.user.id}
+        />
+      )}
+
+      {/* Sign Up Dialog */}
+      <AlertDialog open={showSignUpDialog} onOpenChange={setShowSignUpDialog}>
+        <AlertDialogContent className="paper-texture border-accent/20">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl gold-text">
+              💫 Save Your Conversations
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base space-y-3 pt-2">
+              <p className="text-foreground/90">
+                Sign up to unlock the full experience:
+              </p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-accent mt-0.5">✓</span>
+                  <span>Save and revisit all your conversations</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-accent mt-0.5">✓</span>
+                  <span>Access your chat history from any device</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-accent mt-0.5">✓</span>
+                  <span>Organize and manage your hadith research</span>
+                </li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Without Saving</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => navigate('/auth')}
+              className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            >
+              Sign Up Now
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="border-b border-border/40 bg-card/50 backdrop-blur px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold gold-text">Hadith Assistant</h1>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSignOut}
-              className="gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </Button>
+            {session?.user ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/auth')}
+                className="gap-2 border-accent/30 hover:bg-accent/10"
+              >
+                <LogIn className="w-4 h-4" />
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
 

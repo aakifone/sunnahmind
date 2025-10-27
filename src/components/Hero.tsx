@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BookOpen, Shield, Search } from "lucide-react";
+import { ArrowRight, BookOpen, Shield, Search, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
@@ -7,6 +7,18 @@ const Hero = () => {
 
   return (
     <section className="relative overflow-hidden paper-texture geometric-pattern">
+      {/* Sign In Button - Top Right */}
+      <div className="absolute top-6 right-6 z-10">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/auth')}
+          className="gap-2 border-accent/30 hover:bg-accent/10"
+        >
+          <LogIn className="w-4 h-4" />
+          Sign In
+        </Button>
+      </div>
+
       <div className="container mx-auto px-4 py-20 md:py-32">
         <div className="max-w-4xl mx-auto text-center space-y-8">
           {/* Trust Badge */}
@@ -34,7 +46,7 @@ const Hero = () => {
             <Button 
               size="lg" 
               className="group bg-primary hover:bg-primary/90 text-primary-foreground shadow-elegant hover:shadow-gold-glow transition-all"
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate('/chat')}
             >
               Start Asking Questions
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
