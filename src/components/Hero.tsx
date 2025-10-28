@@ -25,17 +25,14 @@ const Hero = () => {
             }}>
               السلام عليكم ورحمة الله وبركاته
             </h1>
-            <p className="text-sm md:text-base text-muted-foreground">
-              Ask questions about
-            </p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight" style={{ 
-              background: 'var(--gradient-emerald)', 
-              WebkitBackgroundClip: 'text', 
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>
-              Hadith & Sunnah
-            </h2>
+            <div className="space-y-2">
+              <p className="text-xl md:text-2xl font-medium text-foreground">
+                Ask questions about
+              </p>
+              <p className="text-xl md:text-2xl font-medium text-foreground">
+                Hadith & Sunnah
+              </p>
+            </div>
           </div>
 
           {/* Description */}

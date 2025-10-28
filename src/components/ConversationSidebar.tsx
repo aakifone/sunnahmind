@@ -12,9 +12,17 @@ import {
   Check,
   X,
   Menu,
+  MoreVertical,
+  Search,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Conversation {
   id: string;
@@ -42,6 +50,7 @@ const ConversationSidebar = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [collapsed, setCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -189,34 +198,40 @@ const ConversationSidebar = ({
       ) : (
         <>
           <span className="flex-1 text-sm truncate">{conv.title}</span>
-          <div className="hidden group-hover:flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 w-7 p-0 transition-all hover:scale-110"
-              onClick={() => {
-                setEditingId(conv.id);
-                setEditTitle(conv.title);
-              }}
-            >
-              <Edit2 className="w-3 h-3" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 w-7 p-0 transition-all hover:scale-110"
-              onClick={() => handleArchive(conv.id, !conv.is_archived)}
-            >
-              <Archive className="w-3 h-3" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 w-7 p-0 transition-all hover:scale-110 hover:text-destructive"
-              onClick={() => handleDelete(conv.id)}
-            >
-              <Trash2 className="w-3 h-3" />
-            </Button>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={() => {
+                    setEditingId(conv.id);
+                    setEditTitle(conv.title);
+                  }}
+                >
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleArchive(conv.id, !conv.is_archived)}>
+                  <Archive className="w-4 h-4 mr-2" />
+                  {conv.is_archived ? "Unarchive" : "Archive"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleDelete(conv.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </>
       )}
@@ -267,13 +282,26 @@ const ConversationSidebar = ({
           <Plus className="w-4 h-4" />
           New Conversation
         </Button>
+        <div className="mt-2 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
       </div>
 
       <ScrollArea className="flex-1 p-2">
         <div className="space-y-1">
-          {conversations.map((conv) => (
-            <ConversationItem key={conv.id} conv={conv} />
-          ))}
+          {conversations
+            .filter((conv) =>
+              conv.title.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map((conv) => (
+              <ConversationItem key={conv.id} conv={conv} />
+            ))}
         </div>
       </ScrollArea>
 

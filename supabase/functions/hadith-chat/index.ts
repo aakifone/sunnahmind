@@ -29,6 +29,38 @@ serve(async (req) => {
     const userQuestion = messages[messages.length - 1]?.content || "";
     console.log("User question:", userQuestion);
 
+    // Check if the message is a greeting
+    const greetingPatterns = /^(hi|hello|hey|salam|salaam|assalam|assalamu alaikum|as-salamu alaykum|wa alaikum salam|hola|bonjour|salut|ciao|hallo|namaste|greetings|good morning|good afternoon|good evening)\b/i;
+    const isGreeting = greetingPatterns.test(userQuestion.trim());
+
+    if (isGreeting) {
+      console.log("Greeting detected, returning specific hadiths");
+      return new Response(
+        JSON.stringify({
+          content: "وعليكم السلام ورحمة الله وبركاته (Wa alaykumu as-salam wa rahmatullahi wa barakatuh)\n\nMay peace, mercy, and blessings of Allah be upon you! Here are authentic hadiths about the virtue of greeting with Salam:\n\n💡 Important: These authentic hadiths are sourced from sunnah.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.",
+          citations: [
+            {
+              collection: "Riyad as-Salihin",
+              hadithNumber: "845",
+              url: "https://sunnah.com/riyadussalihin:845",
+              translation: "The superiority of greeting first",
+              arabic: ""
+            },
+            {
+              collection: "Riyad as-Salihin",
+              hadithNumber: "844",
+              url: "https://sunnah.com/riyadussalihin:844",
+              translation: "The excellence of spreading Salam",
+              arabic: ""
+            }
+          ],
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const searchContext = getSunnahComContext(userQuestion);
     console.log("Search context:", searchContext);
 
@@ -41,7 +73,7 @@ FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 [Write 2-3 paragraphs answering the question]
 
 CITATIONS_START
-[{"collection":"Sahih Bukhari","hadithNumber":"1442","narrator":"Abu Hurairah","url":"https://sunnah.com/bukhari:1442","translation":"The Prophet (ﷺ) said: 'Charity does not decrease wealth, no one forgives except that Allah increases his honor, and no one humbles himself for the sake of Allah except that Allah raises his status.'","arabic":"قَالَ رَسُولُ اللَّهِ صلى الله عليه وسلم مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ"}]
+[{"collection":"Sahih Bukhari","hadithNumber":"1442","url":"https://sunnah.com/bukhari:1442","translation":"The Prophet (ﷺ) said: 'Charity does not decrease wealth...'","arabic":"قَالَ رَسُولُ اللَّهِ صلى الله عليه وسلم مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ"}]
 CITATIONS_END
 
 💡 These authentic hadiths are from sunnah.com. For personal religious rulings, consult qualified scholars.
@@ -54,12 +86,14 @@ PATIENCE: Bukhari 5645, Muslim 2999
 PARENTS: Bukhari 5971, Muslim 2548
 TRUTH: Bukhari 6094, Muslim 2607
 
-RULES:
+CRITICAL RULES:
 1. ALWAYS include CITATIONS_START/END with valid JSON array
 2. JSON must be on ONE line (no line breaks)
 3. URL format: https://sunnah.com/bukhari:1442 (lowercase collection name)
 4. Include 1-4 citations minimum
 5. Never say "I could not find"
+6. DO NOT include "narrator" field in JSON - narrators are visible on sunnah.com directly
+7. Only include: collection, hadithNumber, url, translation, arabic
 
 USER QUESTION: "${userQuestion}"`;
 
