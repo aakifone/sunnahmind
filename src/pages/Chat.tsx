@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Sparkles, LogOut, LogIn, Home } from "lucide-react";
+import { Send, Sparkles, LogIn, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
 import ConversationSidebar from "@/components/ConversationSidebar";
+import AccountDropdown from "@/components/AccountDropdown";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -218,11 +219,7 @@ const Chat = () => {
 
         // Update conversation title with first user message
         if (messages.length === 1) {
-          const title = input.slice(0, 50) + (input.length > 50 ? "..." : "");
-          await supabase
-            .from("conversations")
-            .update({ title })
-            .eq("id", conversationId);
+          await updateConversationTitle(conversationId, input);
         }
       }
     } catch (error) {
@@ -253,9 +250,13 @@ const Chat = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+  // Auto-update conversation title after first user message
+  const updateConversationTitle = async (conversationId: string, userMessage: string) => {
+    const title = userMessage.slice(0, 50) + (userMessage.length > 50 ? "..." : "");
+    await supabase
+      .from("conversations")
+      .update({ title })
+      .eq("id", conversationId);
   };
 
   return (
@@ -324,15 +325,7 @@ const Chat = () => {
             </Button>
             <h1 className="text-xl font-bold gold-text">Hadith Assistant</h1>
             {session?.user ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSignOut}
-                className="gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </Button>
+              <AccountDropdown userEmail={session.user.email || ""} />
             ) : (
               <Button
                 variant="outline"
