@@ -46,10 +46,11 @@ const Header = () => {
           <div className="hidden md:flex items-center gap-4">
             <Button 
               variant="outline" 
-              className="border-accent/30 hover:bg-accent/10 hover:border-accent"
+              className="border-accent/30 hover:bg-accent/10 hover:border-accent gap-2"
               onClick={() => navigate('/auth')}
             >
               Sign In
+              <span className="text-sm">→]</span>
             </Button>
           </div>
 

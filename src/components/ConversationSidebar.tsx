@@ -36,6 +36,7 @@ interface ConversationSidebarProps {
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   userId: string;
+  refreshTrigger?: number;
 }
 
 const ConversationSidebar = ({
@@ -43,6 +44,7 @@ const ConversationSidebar = ({
   onSelectConversation,
   onNewConversation,
   userId,
+  refreshTrigger,
 }: ConversationSidebarProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
@@ -55,7 +57,7 @@ const ConversationSidebar = ({
 
   useEffect(() => {
     loadConversations();
-  }, [userId]);
+  }, [userId, refreshTrigger]);
 
   const loadConversations = async () => {
     const { data: active, error: activeError } = await supabase
@@ -151,12 +153,11 @@ const ConversationSidebar = ({
 
   const ConversationItem = ({ conv }: { conv: Conversation }) => (
     <div
-      className={`group flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+      className={`group flex items-center gap-2 p-3 rounded-lg transition-all ${
         currentConversationId === conv.id
           ? "bg-accent text-accent-foreground"
           : "hover:bg-accent/20"
       }`}
-      onClick={() => !editingId && onSelectConversation(conv.id)}
     >
       <MessageSquare className="w-4 h-4 flex-shrink-0" />
       
@@ -197,8 +198,13 @@ const ConversationSidebar = ({
         </div>
       ) : (
         <>
-          <span className="flex-1 text-sm truncate">{conv.title}</span>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          <span 
+            className="flex-1 text-sm truncate cursor-pointer"
+            onClick={() => onSelectConversation(conv.id)}
+          >
+            {conv.title}
+          </span>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

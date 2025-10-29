@@ -25,24 +25,16 @@ const Hero = () => {
             }}>
               السلام عليكم ورحمة الله وبركاته
             </h1>
-            <div className="space-y-2">
-              <p className="text-xl md:text-2xl font-medium text-foreground">
-                Ask questions about
-              </p>
-              <p className="text-xl md:text-2xl font-medium text-foreground">
-                Hadith & Sunnah
-              </p>
-            </div>
           </div>
 
           {/* Description */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            A respectful AI assistant that answers your questions using only authenticated content from sunnah.com. 
+            <span className="font-semibold text-foreground">Ask questions about Hadith & Sunnah:</span> A respectful AI assistant that answers your questions using only authenticated content from sunnah.com. 
             Every answer includes clear citations and references you can verify.
           </p>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          {/* CTA Button */}
+          <div className="flex justify-center pt-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <Button 
               size="lg" 
               className="group text-white shadow-elegant hover:shadow-gold-glow transition-all"
@@ -54,15 +46,6 @@ const Hero = () => {
             >
               Start Asking Questions
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="gap-2 border-accent/30 hover:bg-accent/10 hover:border-accent transition-all group"
-              onClick={() => navigate('/auth')}
-            >
-              Sign In
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
 

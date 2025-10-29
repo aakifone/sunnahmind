@@ -44,6 +44,7 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSignUpDialog, setShowSignUpDialog] = useState(false);
   const [hasAskedFirstQuestion, setHasAskedFirstQuestion] = useState(false);
+  const [refreshSidebar, setRefreshSidebar] = useState(0);
 
   useEffect(() => {
     // Check authentication (but don't redirect, allow anonymous usage)
@@ -257,6 +258,9 @@ const Chat = () => {
       .from("conversations")
       .update({ title })
       .eq("id", conversationId);
+    
+    // Trigger sidebar refresh to show updated title immediately
+    setRefreshSidebar(prev => prev + 1);
   };
 
   return (
@@ -268,6 +272,7 @@ const Chat = () => {
           onSelectConversation={loadConversation}
           onNewConversation={handleNewConversation}
           userId={session.user.id}
+          refreshTrigger={refreshSidebar}
         />
       )}
 
