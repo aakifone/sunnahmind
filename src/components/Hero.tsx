@@ -33,8 +33,8 @@ const Hero = () => {
             Every answer includes clear citations and references you can verify.
           </p>
 
-          {/* CTA Button */}
-          <div className="flex justify-center pt-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          {/* CTA Buttons */}
+          <div className="flex justify-center gap-4 pt-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <Button 
               size="lg" 
               className="group text-white shadow-elegant hover:shadow-gold-glow transition-all"
@@ -45,6 +45,18 @@ const Hero = () => {
               onClick={() => navigate('/chat')}
             >
               Start Asking Questions
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="group bg-white text-foreground border-2 hover:bg-white/90"
+              style={{ 
+                borderImage: 'var(--gradient-gold-brown) 1',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Learn how it works
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>

@@ -12,17 +12,10 @@ import {
   Check,
   X,
   Menu,
-  MoreVertical,
   Search,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface Conversation {
   id: string;
@@ -204,40 +197,34 @@ const ConversationSidebar = ({
           >
             {conv.title}
           </span>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0 hover:bg-accent/50"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onClick={() => {
-                    setEditingId(conv.id);
-                    setEditTitle(conv.title);
-                  }}
-                >
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleArchive(conv.id, !conv.is_archived)}>
-                  <Archive className="w-4 h-4 mr-2" />
-                  {conv.is_archived ? "Unarchive" : "Archive"}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleDelete(conv.id)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 flex-shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              onClick={() => {
+                setEditingId(conv.id);
+                setEditTitle(conv.title);
+              }}
+            >
+              <Edit2 className="w-3 h-3" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              onClick={() => handleArchive(conv.id, !conv.is_archived)}
+            >
+              <Archive className="w-3 h-3" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              onClick={() => handleDelete(conv.id)}
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
           </div>
         </>
       )}
