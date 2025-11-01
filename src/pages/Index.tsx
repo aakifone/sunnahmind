@@ -67,9 +67,17 @@ const Index = () => {
               Our Mission
             </h2>
             <div className="prose prose-lg mx-auto text-muted-foreground">
-              <p className="text-center mb-8">
-                We believe access to authenticated Islamic knowledge should be simple, transparent, and trustworthy.
+            <div className="text-center mb-8 space-y-4">
+              <p>
+                In recent years, many scholars and educators have warned against using artificial intelligence for Islamic learning, especially in areas like Hadith, because many AI tools rely on unverified or unreliable sources. This can lead to misquotations, incorrect attributions, or even fabricated narrations being presented as authentic. Such mistakes go against the precision and trust that the study of Hadith requires.
               </p>
+              <p>
+                Hadith AI was created to address this concern by providing a reliable and transparent tool that only retrieves Hadith directly from Sunnah.com, a trusted and well-recognized source for authentic Islamic texts. The goal is not to replace traditional scholarship, but to make genuine Hadith knowledge more accessible, accurate, and easy to explore in the digital age.
+              </p>
+              <p>
+                By combining verified sources with modern technology, Hadith AI aims to support students, teachers, and researchers in their pursuit of authentic Islamic understanding, while maintaining full respect for the integrity of religious knowledge and the guidance of scholars.
+              </p>
+            </div>
               <div className="bg-card border border-accent/20 rounded-lg p-6 space-y-4">
                 <p className="font-semibold text-foreground">
                   This tool is designed for:
