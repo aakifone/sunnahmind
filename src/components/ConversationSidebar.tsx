@@ -153,7 +153,7 @@ const ConversationSidebar = ({
 
   const ConversationItem = ({ conv }: { conv: Conversation }) => (
     <div
-      className={`group flex items-center gap-2 p-3 rounded-lg transition-all ${
+      className={`group flex items-center gap-2 p-3 rounded-lg transition-all relative ${
         currentConversationId === conv.id
           ? "bg-accent text-accent-foreground"
           : "hover:bg-accent/20"
@@ -204,13 +204,13 @@ const ConversationSidebar = ({
           >
             {conv.title}
           </span>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 w-7 p-0"
+                  className="h-7 w-7 p-0 hover:bg-accent/50"
                 >
                   <MoreVertical className="w-4 h-4" />
                 </Button>

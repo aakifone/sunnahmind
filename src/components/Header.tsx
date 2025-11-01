@@ -49,8 +49,8 @@ const Header = () => {
               className="border-accent/30 hover:bg-accent/10 hover:border-accent gap-2"
               onClick={() => navigate('/auth')}
             >
-              Sign In
               <span className="text-sm">→]</span>
+              Sign In
             </Button>
           </div>
 
