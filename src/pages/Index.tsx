@@ -38,7 +38,7 @@ const Index = () => {
                 <div>
                   <h3 className="font-semibold text-lg mb-2">Get Cited Answers</h3>
                   <p className="text-muted-foreground">
-                    Receive a concise answer with direct quotes from Hadith. Each response includes collection name, Hadith number, narrator, and a link to verify on sunnah.com.
+                    Receive a concise answer with direct quotes from Hadith. Each response includes a short description on the query and a link to verify on sunnah.com.
                   </p>
                 </div>
               </div>

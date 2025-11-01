@@ -29,8 +29,7 @@ const Hero = () => {
 
           {/* Description */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            <span className="font-semibold text-foreground">Ask questions about Hadith & Sunnah:</span> A respectful AI assistant that answers your questions using only authenticated content from sunnah.com. 
-            Every answer includes clear citations and references you can verify.
+            <span className="font-semibold text-foreground">Ask questions about Hadith & Sunnah:</span> AI assistant that answers your questions using Hadiths from sunnah.com. Every answer includes clear references.
           </p>
 
           {/* CTA Buttons */}
@@ -54,6 +53,10 @@ const Hero = () => {
               style={{ 
                 borderImage: 'var(--gradient-gold-brown) 1',
                 transition: 'all 0.3s ease'
+              }}
+              onClick={() => {
+                const element = document.getElementById('how-it-works');
+                element?.scrollIntoView({ behavior: 'smooth' });
               }}
             >
               Learn how it works
