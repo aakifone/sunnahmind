@@ -197,12 +197,13 @@ const ConversationSidebar = ({
           >
             {conv.title}
           </span>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 flex-shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 flex-shrink-0 ml-auto">
             <Button
               size="sm"
               variant="ghost"
               className="h-7 w-7 p-0"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setEditingId(conv.id);
                 setEditTitle(conv.title);
               }}
@@ -213,7 +214,10 @@ const ConversationSidebar = ({
               size="sm"
               variant="ghost"
               className="h-7 w-7 p-0"
-              onClick={() => handleArchive(conv.id, !conv.is_archived)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleArchive(conv.id, !conv.is_archived);
+              }}
             >
               <Archive className="w-3 h-3" />
             </Button>
@@ -221,7 +225,10 @@ const ConversationSidebar = ({
               size="sm"
               variant="ghost"
               className="h-7 w-7 p-0"
-              onClick={() => handleDelete(conv.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(conv.id);
+              }}
             >
               <Trash2 className="w-3 h-3" />
             </Button>
