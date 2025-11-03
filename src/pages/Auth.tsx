@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, Mail, Phone, Home } from "lucide-react";
+import { BookOpen, Home } from "lucide-react";
 import { Session } from "@supabase/supabase-js";
 import { Separator } from "@/components/ui/separator";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
@@ -100,32 +99,6 @@ const Auth = () => {
         description: error.message || "An error occurred",
         variant: "destructive",
       });
-    }
-  };
-
-  const handlePhoneAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone,
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Verification code sent!",
-        description: "Check your phone for the verification code.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "An error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -238,42 +211,6 @@ const Auth = () => {
             </svg>
             Continue with Google
           </Button>
-
-          {!isLogin && (
-            <>
-              <div className="relative my-4">
-                <Separator />
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                  OR
-                </span>
-              </div>
-
-              <form onSubmit={handlePhoneAuth} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+1234567890"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  variant="outline"
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  <Phone className="w-4 h-4 mr-2" />
-                  Sign Up with Phone
-                </Button>
-              </form>
-            </>
-          )}
         </div>
       </div>
     </div>
