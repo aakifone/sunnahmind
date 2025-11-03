@@ -19,6 +19,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { z } from 'zod';
+
+const messageSchema = z.object({
+  content: z.string()
+    .min(1, 'Message cannot be empty')
+    .max(2000, 'Message must be less than 2000 characters')
+    .trim()
+});
 
 interface Message {
   role: "user" | "assistant";
@@ -146,6 +154,17 @@ const Chat = () => {
 
   const handleSend = async () => {
     if (!input.trim()) return;
+
+    // Validate input
+    const validation = messageSchema.safeParse({ content: input });
+    if (!validation.success) {
+      toast({
+        title: "Invalid input",
+        description: validation.error.errors[0].message,
+        variant: "destructive"
+      });
+      return;
+    }
 
     // Show sign up dialog after first question for anonymous users
     if (!session?.user && !hasAskedFirstQuestion) {

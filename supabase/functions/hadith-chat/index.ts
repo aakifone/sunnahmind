@@ -19,6 +19,26 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
+
+    // Validate input
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage?.content || 
+        typeof lastMessage.content !== 'string' ||
+        lastMessage.content.length > 2000 ||
+        lastMessage.content.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid message content' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
