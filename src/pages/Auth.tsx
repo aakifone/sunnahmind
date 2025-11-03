@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, Mail, Phone } from "lucide-react";
+import { BookOpen, Mail, Phone, Home } from "lucide-react";
 import { Session } from "@supabase/supabase-js";
 import { Separator } from "@/components/ui/separator";
 
@@ -133,9 +133,17 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8 animate-fade-in">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/")}
+            className="absolute top-4 left-4"
+          >
+            <Home className="w-5 h-5" />
+          </Button>
           <div className="flex items-center justify-center gap-3 mb-4">
             <BookOpen className="w-12 h-12 text-accent" />
-            <h1 className="text-4xl font-bold gold-text">Hadith Assistant</h1>
+            <h1 className="text-4xl font-bold gold-text">Sunnah Mind</h1>
           </div>
           <p className="text-muted-foreground">
             Access authentic hadith guidance
