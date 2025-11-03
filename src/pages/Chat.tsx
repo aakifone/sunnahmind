@@ -218,8 +218,8 @@ const Chat = () => {
       );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        console.error('API error:', response.status);
+        throw new Error('Failed to get response from service');
       }
 
       const data = await response.json();
@@ -247,13 +247,13 @@ const Chat = () => {
       
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to get response. Please try again.",
+        description: "Failed to get response. Please try again.",
         variant: "destructive",
       });
       
       const errorMessage: Message = {
         role: "assistant",
-        content: `I apologize, but I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please try again.`,
+        content: "I apologize, but I encountered an error processing your request. Please try again.",
         timestamp: new Date(),
       };
       
