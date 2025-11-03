@@ -44,7 +44,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "السلام عليكم! I'm your Hadith Assistant. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
+      content: "السلام عليكم! I'm your Sunnah Mind assistant. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
       timestamp: new Date(),
     }
   ]);
@@ -146,7 +146,7 @@ const Chat = () => {
     setMessages([
       {
         role: "assistant",
-        content: "السلام عليكم! I'm your Hadith Assistant. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
+        content: "السلام عليكم! I'm your Sunnah Mind assistant. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
         timestamp: new Date(),
       }
     ]);
@@ -347,7 +347,7 @@ const Chat = () => {
               <Home className="w-4 h-4" />
               <span>Home</span>
             </Button>
-            <h1 className="text-xl font-bold gold-text">Hadith Assistant</h1>
+            <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
             {session?.user ? (
               <AccountDropdown userEmail={session.user.email || ""} />
             ) : (

@@ -20,7 +20,7 @@ const Header = () => {
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-lg font-bold leading-none">Hadith AI</span>
+              <span className="text-lg font-bold leading-none">Sunnah Mind</span>
             </div>
           </button>
 
