@@ -44,7 +44,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "السلام عليكم! I'm your Sunnah Mind assistant. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
+      content: "السلام عليكم! I'm Sunnah Mind. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
       timestamp: new Date(),
     }
   ]);
@@ -146,7 +146,7 @@ const Chat = () => {
     setMessages([
       {
         role: "assistant",
-        content: "السلام عليكم! I'm your Sunnah Mind assistant. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
+        content: "السلام عليكم! I'm Sunnah Mind. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
         timestamp: new Date(),
       }
     ]);
