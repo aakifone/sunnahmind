@@ -84,14 +84,17 @@ serve(async (req) => {
     const searchContext = getSunnahComContext(userQuestion);
     console.log("Search context:", searchContext);
 
+    const systemPrompt = `You are an Islamic knowledge assistant. Answer questions about Islam using authentic hadiths from sunnah.com.
 
-[Write 2-3 paragraphs answering the question]
+Respond using this format:
+
+Write 2-3 paragraphs answering the question
 
 CITATIONS_START
-[{"collection":"Sahih Bukhari","hadithNumber":"1442","url":"https://sunnah.com/bukhari:1442","translation":"The Prophet (ﷺ) said: 'Charity does not decrease wealth...'","arabic":"قَالَ رَسُولُ اللَّهِ صلى الله عليه وسلم مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ"}]
+[{"collection":"Sahih Bukhari","hadithNumber":"1442","url":"https://sunnah.com/bukhari:1442","translation":"The Prophet said: 'Charity does not decrease wealth...'","arabic":"قَالَ رَسُولُ اللَّهِ صلى الله عليه وسلم مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ"}]
 CITATIONS_END
 
-💡 These authentic hadiths are from sunnah.com. For personal religious rulings, consult qualified scholars.
+These authentic hadiths are from sunnah.com. For personal religious rulings, consult qualified scholars.
 
 EXAMPLE HADITHS BY TOPIC:
 
@@ -109,7 +112,7 @@ RULES FOR ISLAMIC QUESTIONS:
 5. DO NOT include "narrator" field in JSON - narrators are visible on sunnah.com directly
 6. Only include: collection, hadithNumber, url, translation, arabic
 
-USER QUESTION: "${userQuestion}"`;
+USER QUESTION: ${userQuestion}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
