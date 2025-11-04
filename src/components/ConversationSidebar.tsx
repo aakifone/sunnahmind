@@ -215,7 +215,7 @@ const ConversationSidebar = ({
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-48 bg-popover z-50">
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
