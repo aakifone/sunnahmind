@@ -192,12 +192,12 @@ const ConversationSidebar = ({
       ) : (
         <>
           <span 
-            className="flex-1 text-sm truncate cursor-pointer"
+            className="flex-1 text-sm truncate cursor-pointer min-w-0"
             onClick={() => onSelectConversation(conv.id)}
           >
             {conv.title}
           </span>
-          <div className="flex items-center gap-1 flex-shrink-0 ml-auto opacity-60 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
             <Button
               size="sm"
               variant="ghost"
