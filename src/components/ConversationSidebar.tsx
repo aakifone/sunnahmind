@@ -146,7 +146,7 @@ const ConversationSidebar = ({
 
   const ConversationItem = ({ conv }: { conv: Conversation }) => (
     <div
-      className={`group flex items-center gap-2 p-3 rounded-lg transition-all relative ${
+      className={`group flex items-center gap-2 p-3 rounded-lg transition-all relative overflow-hidden ${
         currentConversationId === conv.id
           ? "bg-accent text-accent-foreground"
           : "hover:bg-accent/20"
@@ -192,12 +192,12 @@ const ConversationSidebar = ({
       ) : (
         <>
           <span 
-            className="flex-1 text-sm truncate cursor-pointer min-w-0"
+            className="text-sm truncate cursor-pointer flex-shrink min-w-0 flex-1 overflow-hidden"
             onClick={() => onSelectConversation(conv.id)}
           >
             {conv.title}
           </span>
-          <div className="flex items-center gap-1 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 flex-shrink-0 ml-2 opacity-60 group-hover:opacity-100 transition-opacity">
             <Button
               size="sm"
               variant="ghost"
