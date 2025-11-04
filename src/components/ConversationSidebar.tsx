@@ -13,9 +13,16 @@ import {
   X,
   Menu,
   Search,
+  MoreVertical,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Conversation {
   id: string;
@@ -192,53 +199,56 @@ const ConversationSidebar = ({
       ) : (
         <>
           <span 
-            className="text-sm truncate cursor-pointer flex-shrink min-w-0 flex-1 overflow-hidden"
+            className="text-sm truncate cursor-pointer flex-1 min-w-0"
             onClick={() => onSelectConversation(conv.id)}
           >
             {conv.title}
           </span>
-          <div className="flex items-center gap-1 flex-shrink-0 ml-2 opacity-60 group-hover:opacity-100 transition-opacity">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 w-7 p-0 hover:bg-accent"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                console.log("Edit clicked for:", conv.id);
-                setEditingId(conv.id);
-                setEditTitle(conv.title);
-              }}
-            >
-              <Edit2 className="w-3 h-3" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 w-7 p-0 hover:bg-accent"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                console.log("Archive clicked for:", conv.id);
-                handleArchive(conv.id, !conv.is_archived);
-              }}
-            >
-              <Archive className="w-3 h-3" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 w-7 p-0 hover:bg-accent"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                console.log("Delete clicked for:", conv.id);
-                handleDelete(conv.id);
-              }}
-            >
-              <Trash2 className="w-3 h-3" />
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingId(conv.id);
+                  setEditTitle(conv.title);
+                }}
+                className="cursor-pointer"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleArchive(conv.id, !conv.is_archived);
+                }}
+                className="cursor-pointer"
+              >
+                <Archive className="w-4 h-4 mr-2" />
+                {conv.is_archived ? "Unarchive" : "Archive"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(conv.id);
+                }}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </>
       )}
     </div>
