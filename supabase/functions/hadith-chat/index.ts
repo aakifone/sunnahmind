@@ -90,6 +90,8 @@ Respond using this format:
 
 Write 2-3 paragraphs answering the question. DO NOT use lettered lists (a, b, c) or numbered lists. Write in flowing paragraphs only.
 
+DO NOT include the full hadith text (Arabic or English) in your answer paragraphs. Only reference the hadiths and provide your explanation.
+
 CITATIONS_START
 [{"collection":"Sahih Bukhari","hadithNumber":"1442","url":"https://sunnah.com/bukhari:1442","translation":"The Prophet said: 'Charity does not decrease wealth...'","arabic":"قَالَ رَسُولُ اللَّهِ صلى الله عليه وسلم مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ"}]
 CITATIONS_END
@@ -113,13 +115,17 @@ CRITICAL RULES FOR HADITH CITATIONS:
 6. Only include: collection, hadithNumber, url, translation, arabic
 7. NEVER use lettered lists (a), (b), (c) or numbered lists in your response
 8. Write in flowing paragraphs without any list formatting
+9. DO NOT write the full Arabic hadith text in your main answer
+10. DO NOT write the full English translation in your main answer
+11. DO NOT write "View full hadith on sunnah.com" in your main answer
+12. Only provide citations in the CITATIONS_START/END block - keep your answer paragraphs clean
 
 CRITICAL - EXACT TEXT REQUIREMENT:
-9. The "translation" field MUST contain the EXACT English translation from the specific sunnah.com URL you provide
-10. The "arabic" field MUST contain the EXACT Arabic text from the specific sunnah.com URL you provide
-11. Do NOT paraphrase, summarize, or modify the hadith text - copy it EXACTLY as it appears on sunnah.com
-12. Verify that the hadith number and URL you provide actually exists on sunnah.com
-13. The text you provide must match what users will see when they click the link to that specific hadith
+13. The "translation" field MUST contain the EXACT English translation from the specific sunnah.com URL you provide
+14. The "arabic" field MUST contain the EXACT Arabic text from the specific sunnah.com URL you provide
+15. Do NOT paraphrase, summarize, or modify the hadith text in citations - copy it EXACTLY as it appears on sunnah.com
+16. Verify that the hadith number and URL you provide actually exists on sunnah.com
+17. The text you provide must match what users will see when they click the link to that specific hadith
 
 USER QUESTION: ${userQuestion}`;
 
