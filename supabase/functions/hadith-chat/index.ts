@@ -88,7 +88,7 @@ serve(async (req) => {
 
 Respond using this format:
 
-Write 2-3 paragraphs answering the question
+Write 2-3 paragraphs answering the question. DO NOT use lettered lists (a, b, c) or numbered lists. Write in flowing paragraphs only.
 
 CITATIONS_START
 [{"collection":"Sahih Bukhari","hadithNumber":"1442","url":"https://sunnah.com/bukhari:1442","translation":"The Prophet said: 'Charity does not decrease wealth...'","arabic":"قَالَ رَسُولُ اللَّهِ صلى الله عليه وسلم مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ"}]
@@ -111,6 +111,8 @@ RULES FOR ISLAMIC QUESTIONS:
 4. Include 1-4 relevant citations
 5. DO NOT include "narrator" field in JSON - narrators are visible on sunnah.com directly
 6. Only include: collection, hadithNumber, url, translation, arabic
+7. NEVER use lettered lists (a), (b), (c) or numbered lists in your response
+8. Write in flowing paragraphs without any list formatting
 
 USER QUESTION: ${userQuestion}`;
 
