@@ -104,7 +104,7 @@ PATIENCE: Bukhari 5645, Muslim 2999
 PARENTS: Bukhari 5971, Muslim 2548
 TRUTH: Bukhari 6094, Muslim 2607
 
-RULES FOR ISLAMIC QUESTIONS:
+CRITICAL RULES FOR HADITH CITATIONS:
 1. Include CITATIONS_START/END with valid JSON array
 2. JSON must be on ONE line (no line breaks)
 3. URL format: https://sunnah.com/bukhari:1442 (lowercase collection name)
@@ -113,6 +113,13 @@ RULES FOR ISLAMIC QUESTIONS:
 6. Only include: collection, hadithNumber, url, translation, arabic
 7. NEVER use lettered lists (a), (b), (c) or numbered lists in your response
 8. Write in flowing paragraphs without any list formatting
+
+CRITICAL - EXACT TEXT REQUIREMENT:
+9. The "translation" field MUST contain the EXACT English translation from the specific sunnah.com URL you provide
+10. The "arabic" field MUST contain the EXACT Arabic text from the specific sunnah.com URL you provide
+11. Do NOT paraphrase, summarize, or modify the hadith text - copy it EXACTLY as it appears on sunnah.com
+12. Verify that the hadith number and URL you provide actually exists on sunnah.com
+13. The text you provide must match what users will see when they click the link to that specific hadith
 
 USER QUESTION: ${userQuestion}`;
 
