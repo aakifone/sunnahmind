@@ -1,6 +1,5 @@
-import { ExternalLink, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 
 interface Citation {
   collection: string;
@@ -19,14 +18,6 @@ interface ChatMessageProps {
 }
 
 const ChatMessage = ({ role, content, citations, timestamp }: ChatMessageProps) => {
-  const [expandedCitations, setExpandedCitations] = useState<Record<number, boolean>>({});
-
-  const toggleCitation = (index: number) => {
-    setExpandedCitations(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
-  };
 
   if (role === "user") {
     return (
@@ -86,61 +77,45 @@ const ChatMessage = ({ role, content, citations, timestamp }: ChatMessageProps) 
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 px-3 hover:bg-accent/20 hover:text-accent transition-all duration-200 hover:scale-110"
-                        onClick={() => toggleCitation(index)}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-3 hover:bg-accent/20 hover:text-accent transition-all duration-200 hover:scale-110"
+                      asChild
+                    >
+                      <a 
+                        href={citation.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
                       >
-                        {expandedCitations[index] ? (
-                          <ChevronUp className="w-4 h-4 transition-transform duration-200" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 transition-transform duration-200" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 px-3 hover:bg-accent/20 hover:text-accent transition-all duration-200 hover:scale-110"
-                        asChild
-                      >
-                        <a 
-                          href={citation.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </Button>
-                    </div>
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </Button>
                   </div>
 
-                  {/* Expanded Citation Content */}
-                  {expandedCitations[index] && (
-                    <div className="px-4 pb-4 pt-0 border-t border-accent/20 bg-background/60 animate-in slide-in-from-top-2">
-                      <div className="space-y-4 pt-4">
-                        {citation.arabic && (
-                          <div className="text-right font-arabic text-lg leading-loose text-foreground p-4 bg-gradient-to-br from-card to-card/50 rounded-xl border border-border/40 shadow-sm">
-                            {citation.arabic}
-                          </div>
-                        )}
-                        <div className="text-[15px] leading-relaxed text-foreground/90 p-4 bg-gradient-to-br from-background to-background/50 rounded-xl border border-border/40 shadow-sm">
-                          <p className="text-xs text-muted-foreground mb-2 font-semibold">English Translation:</p>
-                          <p className="italic">"{citation.translation}"</p>
+                  {/* Citation Content */}
+                  <div className="px-4 pb-4 pt-0 border-t border-accent/20 bg-background/60">
+                    <div className="space-y-4 pt-4">
+                      {citation.arabic && (
+                        <div className="text-right font-arabic text-lg leading-loose text-foreground p-4 bg-gradient-to-br from-card to-card/50 rounded-xl border border-border/40 shadow-sm">
+                          {citation.arabic}
                         </div>
-                        <a
-                          href={citation.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-accent hover:text-accent/80 transition-all duration-200 font-semibold bg-accent/10 px-4 py-2 rounded-lg hover:bg-accent/20 hover:gap-3"
-                        >
-                          View full hadith on sunnah.com
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
+                      )}
+                      <div className="text-[15px] leading-relaxed text-foreground/90 p-4 bg-gradient-to-br from-background to-background/50 rounded-xl border border-border/40 shadow-sm">
+                        <p className="text-xs text-muted-foreground mb-2 font-semibold">English Translation:</p>
+                        <p className="italic">"{citation.translation}"</p>
                       </div>
+                      <a
+                        href={citation.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-accent hover:text-accent/80 transition-all duration-200 font-semibold bg-accent/10 px-4 py-2 rounded-lg hover:bg-accent/20 hover:gap-3"
+                      >
+                        View full hadith on sunnah.com
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
