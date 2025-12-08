@@ -91,6 +91,35 @@ const Index = () => {
                   ⚠️ Important: This is not a fatwa-issuing service. We provide Hadith references only. For religious rulings, please consult qualified scholars.
                 </p>
               </div>
+
+              {/* Sources Section */}
+              <div id="sources" className="mt-12 pt-8 border-t border-border/30">
+                <h3 className="text-xl font-bold text-foreground mb-6">
+                  List of Hadith Sources
+                </h3>
+                <div className="space-y-4">
+                  <div className="bg-background/50 border border-border/40 rounded-lg p-5">
+                    <div className="flex items-start gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
+                        1
+                      </span>
+                      <div>
+                        <a 
+                          href="https://sunnah.com" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-lg font-semibold text-accent hover:text-accent/80 transition-colors"
+                        >
+                          Sunnah.com
+                        </a>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          A comprehensive online database of Hadith collections, featuring authenticated texts from major compilations including Sahih Bukhari, Sahih Muslim, Sunan Abu Dawud, and more. Each hadith includes Arabic text, English translations, and detailed chain of narration information.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
