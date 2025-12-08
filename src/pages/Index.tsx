@@ -132,12 +132,10 @@ const Index = () => {
             <p className="text-sm text-muted-foreground">
               All hadith content sourced from{" "}
               <a 
-                href="https://sunnah.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
+                href="#sources"
                 className="text-accent hover:text-accent/80 font-medium transition-colors"
               >
-                sunnah.com
+                sources
               </a>
             </p>
             <p className="text-xs text-muted-foreground">

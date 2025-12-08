@@ -9,11 +9,6 @@ const Hero = () => {
     <section className="relative overflow-hidden paper-texture" style={{ background: 'var(--gradient-background)' }}>
       <div className="container mx-auto px-4 py-20 md:py-32">
         <div className="max-w-4xl mx-auto text-center space-y-8">
-          {/* Trust Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-accent/20 bg-accent/5">
-            <Shield className="w-4 h-4 text-accent" />
-            <span className="text-sm font-medium text-accent">Sourced exclusively from Sunnah.com</span>
-          </div>
 
           {/* Main Heading */}
           <div className="space-y-4 animate-fade-in">
