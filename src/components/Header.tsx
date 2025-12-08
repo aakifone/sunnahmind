@@ -32,13 +32,8 @@ const Header = () => {
             <a href="#about" className="text-sm font-medium hover:text-accent transition-colors">
               About
             </a>
-            <a 
-              href="https://sunnah.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm font-medium hover:text-accent transition-colors"
-            >
-              Sunnah.com
+            <a href="#sources" className="text-sm font-medium hover:text-accent transition-colors">
+              Sources
             </a>
           </nav>
 
@@ -72,13 +67,8 @@ const Header = () => {
               <a href="#about" className="text-sm font-medium hover:text-accent transition-colors">
                 About
               </a>
-              <a 
-                href="https://sunnah.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-sm font-medium hover:text-accent transition-colors"
-              >
-                Sunnah.com
+              <a href="#sources" className="text-sm font-medium hover:text-accent transition-colors">
+                Sources
               </a>
               <Button 
                 className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
