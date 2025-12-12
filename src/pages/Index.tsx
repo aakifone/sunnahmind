@@ -26,7 +26,7 @@ const Index = () => {
                 <div>
                   <h3 className="font-semibold text-lg mb-2">Ask Your Question</h3>
                   <p className="text-muted-foreground">
-                    Type your question about Hadith in natural language. Our AI understands context and searches sunnah.com's authenticated collections.
+                    Type your question about Hadith in natural language. Our AI understands context and searches <a href="#sources" className="text-accent hover:text-accent/80 transition-colors">our source's</a> authenticated collections.
                   </p>
                 </div>
               </div>
@@ -38,7 +38,7 @@ const Index = () => {
                 <div>
                   <h3 className="font-semibold text-lg mb-2">Get Cited Answers</h3>
                   <p className="text-muted-foreground">
-                    Receive a concise answer with direct quotes from Hadith. Each response includes a short description on the query and a link to verify on sunnah.com.
+                    Receive a concise answer with direct quotes from Hadith. Each response includes a short description on the query and a link to verify on our source's websites.
                   </p>
                 </div>
               </div>
@@ -50,7 +50,7 @@ const Index = () => {
                 <div>
                   <h3 className="font-semibold text-lg mb-2">Verify & Learn</h3>
                   <p className="text-muted-foreground">
-                    Click any citation to view the full Hadith on sunnah.com. See the Arabic text, translation, and chain of narration. Always consult scholars for rulings.
+                    Click any citation to view the full Hadith on <a href="#sources" className="text-accent hover:text-accent/80 transition-colors">source website</a>. See the Arabic text, translation, and chain of narration. Always consult scholars for rulings.
                   </p>
                 </div>
               </div>
