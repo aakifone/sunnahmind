@@ -32,6 +32,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   citations?: any[];
+  quranCitations?: any[];
   timestamp: Date;
 }
 
@@ -44,7 +45,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "السلام عليكم! I'm Sunnah Mind. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
+      content: "السلام عليكم! I'm Sunnah Mind. Ask me any question about Islamic teachings, and I'll provide authentic hadiths and Quran verses with direct citations.",
       timestamp: new Date(),
     }
   ]);
@@ -146,7 +147,7 @@ const Chat = () => {
     setMessages([
       {
         role: "assistant",
-        content: "السلام عليكم! I'm Sunnah Mind. Ask me any question about the Prophet's ﷺ teachings, and I'll provide authentic hadiths with direct citations.",
+        content: "السلام عليكم! I'm Sunnah Mind. Ask me any question about Islamic teachings, and I'll provide authentic hadiths and Quran verses with direct citations.",
         timestamp: new Date(),
       }
     ]);
@@ -228,6 +229,7 @@ const Chat = () => {
         role: "assistant",
         content: data.content,
         citations: data.citations || [],
+        quranCitations: data.quranCitations || [],
         timestamp: new Date(),
       };
 
@@ -377,6 +379,7 @@ const Chat = () => {
                   role={message.role}
                   content={message.content}
                   citations={message.citations}
+                  quranCitations={message.quranCitations}
                   timestamp={message.timestamp}
                 />
               </div>
@@ -388,8 +391,8 @@ const Chat = () => {
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <Sparkles className="w-5 h-5 animate-spin text-accent" />
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">Searching authentic hadiths...</span>
-                      <span className="text-xs opacity-70">Finding relevant citations</span>
+                      <span className="text-sm font-medium">Searching authentic sources...</span>
+                      <span className="text-xs opacity-70">Finding hadiths and Quran verses</span>
                     </div>
                   </div>
                 </div>
@@ -424,7 +427,7 @@ const Chat = () => {
             </div>
 
             <p className="text-xs text-muted-foreground mt-2 text-center">
-              Authentic hadiths from sunnah.com • Not for issuing fatwas
+              Authentic sources from sunnah.com & quran.com • Not for issuing fatwas
             </p>
           </div>
         </div>

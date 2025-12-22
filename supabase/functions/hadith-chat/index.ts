@@ -57,7 +57,7 @@ serve(async (req) => {
       console.log("Greeting detected, returning specific hadiths");
       return new Response(
         JSON.stringify({
-          content: "وعليكم السلام ورحمة الله وبركاته (Wa alaykumu as-salam wa rahmatullahi wa barakatuh)\n\nMay peace, mercy, and blessings of Allah be upon you! Here are authentic hadiths about the virtue of greeting with Salam:\n\n💡 Important: These authentic hadiths are sourced from sunnah.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.",
+          content: "وعليكم السلام ورحمة الله وبركاته (Wa alaykumu as-salam wa rahmatullahi wa barakatuh)\n\nMay peace, mercy, and blessings of Allah be upon you! Here are authentic hadiths about the virtue of greeting with Salam:\n\n💡 Important: These authentic sources are from sunnah.com and quran.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.",
           citations: [
             {
               collection: "Riyad as-Salihin",
@@ -74,6 +74,7 @@ serve(async (req) => {
               arabic: ""
             }
           ],
+          quranCitations: []
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -84,48 +85,68 @@ serve(async (req) => {
     const searchContext = getSunnahComContext(userQuestion);
     console.log("Search context:", searchContext);
 
-    const systemPrompt = `You are an Islamic knowledge assistant. Answer questions about Islam using authentic hadiths from sunnah.com.
+    const systemPrompt = `You are an Islamic knowledge assistant. Answer questions about Islam using authentic hadiths from sunnah.com AND relevant Quran verses from quran.com.
 
 Respond using this format:
 
 Write 2-3 paragraphs answering the question. DO NOT use lettered lists (a, b, c) or numbered lists. Write in flowing paragraphs only.
 
-DO NOT include the full hadith text (Arabic or English) in your answer paragraphs. Only reference the hadiths and provide your explanation.
+DO NOT include the full hadith text or Quran verse text in your answer paragraphs. Only reference them and provide your explanation.
 
-CITATIONS_START
+HADITH_CITATIONS_START
 [{"collection":"Sahih Bukhari","hadithNumber":"1442","url":"https://sunnah.com/bukhari:1442","translation":"The Prophet said: 'Charity does not decrease wealth...'","arabic":"قَالَ رَسُولُ اللَّهِ صلى الله عليه وسلم مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ"}]
-CITATIONS_END
+HADITH_CITATIONS_END
 
-These authentic hadiths are from sunnah.com. For personal religious rulings, consult qualified scholars.
+QURAN_CITATIONS_START
+[{"surahNumber":2,"ayahNumber":255,"surahName":"Al-Baqarah","ayahName":"Ayat al-Kursi","arabicText":"اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ...","translation":"Allah - there is no deity except Him, the Ever-Living, the Sustainer of [all] existence...","url":"https://quran.com/2/255"}]
+QURAN_CITATIONS_END
+
+These authentic sources are from sunnah.com and quran.com. For personal religious rulings, consult qualified scholars.
 
 EXAMPLE HADITHS BY TOPIC:
-
 CHARITY: Bukhari 1442, Muslim 2588
 PRAYER: Bukhari 528, Muslim 251  
 PATIENCE: Bukhari 5645, Muslim 2999
 PARENTS: Bukhari 5971, Muslim 2548
 TRUTH: Bukhari 6094, Muslim 2607
 
+EXAMPLE QURAN VERSES BY TOPIC:
+CHARITY: 2:267, 57:18, 2:274
+PRAYER: 2:238, 11:114, 29:45
+PATIENCE: 2:153, 3:200, 16:127
+PARENTS: 17:23-24, 31:14, 46:15
+TRUTH: 3:17, 9:119, 33:35
+MERCY: 21:107, 6:54, 7:156
+GUIDANCE: 1:6-7, 2:2, 6:71
+WORSHIP: 51:56, 1:5, 2:21
+FAITH: 49:14-15, 2:285, 3:193
+KNOWLEDGE: 20:114, 39:9, 58:11
+
 CRITICAL RULES FOR HADITH CITATIONS:
-1. Include CITATIONS_START/END with valid JSON array
+1. Include HADITH_CITATIONS_START/END with valid JSON array
 2. JSON must be on ONE line (no line breaks)
 3. URL format: https://sunnah.com/bukhari:1442 (lowercase collection name)
 4. Include 1-4 relevant citations
-5. DO NOT include "narrator" field in JSON - narrators are visible on sunnah.com directly
-6. Only include: collection, hadithNumber, url, translation, arabic
-7. NEVER use lettered lists (a), (b), (c) or numbered lists in your response
-8. Write in flowing paragraphs without any list formatting
-9. DO NOT write the full Arabic hadith text in your main answer
-10. DO NOT write the full English translation in your main answer
-11. DO NOT write "View full hadith on sunnah.com" in your main answer
-12. Only provide citations in the CITATIONS_START/END block - keep your answer paragraphs clean
+5. Only include: collection, hadithNumber, url, translation, arabic
+6. The "translation" field MUST contain the EXACT English translation from the specific sunnah.com URL
+7. The "arabic" field MUST contain the EXACT Arabic text from the specific sunnah.com URL
 
-CRITICAL - EXACT TEXT REQUIREMENT:
-13. The "translation" field MUST contain the EXACT English translation from the specific sunnah.com URL you provide
-14. The "arabic" field MUST contain the EXACT Arabic text from the specific sunnah.com URL you provide
-15. Do NOT paraphrase, summarize, or modify the hadith text in citations - copy it EXACTLY as it appears on sunnah.com
-16. Verify that the hadith number and URL you provide actually exists on sunnah.com
-17. The text you provide must match what users will see when they click the link to that specific hadith
+CRITICAL RULES FOR QURAN CITATIONS:
+1. Include QURAN_CITATIONS_START/END with valid JSON array
+2. JSON must be on ONE line (no line breaks)
+3. URL format: https://quran.com/2/255 (surah/ayah)
+4. Include 1-3 relevant Quran citations when applicable
+5. Must include: surahNumber, ayahNumber, surahName, ayahName (if famous like Ayat al-Kursi), arabicText, translation, url
+6. The "arabicText" field should contain the Arabic text of the ayah
+7. The "translation" field should contain the English translation (Sahih International or similar)
+8. If a question is specifically about Quran, prioritize Quran citations
+9. If a question is specifically about Hadith, prioritize Hadith citations
+10. For general Islamic questions, include BOTH Quran and Hadith citations
+
+GENERAL RULES:
+1. NEVER use lettered lists (a), (b), (c) or numbered lists in your response
+2. Write in flowing paragraphs without any list formatting
+3. DO NOT write the full Arabic text or translation in your main answer - only in citations
 
 USER QUESTION: ${userQuestion}`;
 
@@ -177,52 +198,80 @@ USER QUESTION: ${userQuestion}`;
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
 
-    console.log("AI Response received (first 300 chars):", content.substring(0, 300));
+    console.log("AI Response received (first 500 chars):", content.substring(0, 500));
 
-    // Parse citations from the response
+    // Parse hadith citations from the response
     let mainContent = content;
-    let citations = [];
+    let hadithCitations = [];
+    let quranCitations = [];
     
-    const citationsMatch = content.match(/CITATIONS_START\s*([\s\S]*?)\s*CITATIONS_END/);
-    if (citationsMatch) {
+    // Parse Hadith citations
+    const hadithMatch = content.match(/HADITH_CITATIONS_START\s*([\s\S]*?)\s*HADITH_CITATIONS_END/);
+    if (hadithMatch) {
       try {
-        let citationsJson = citationsMatch[1].trim();
-        console.log("Raw citations JSON:", citationsJson);
-        
-        // Clean up JSON - remove line breaks and extra spaces
+        let citationsJson = hadithMatch[1].trim();
+        console.log("Raw hadith citations JSON:", citationsJson);
         citationsJson = citationsJson.replace(/\n\s*/g, ' ').replace(/\s+/g, ' ');
+        hadithCitations = JSON.parse(citationsJson);
+        console.log(`Successfully parsed ${hadithCitations.length} hadith citations`);
         
-        citations = JSON.parse(citationsJson);
-        console.log(`Successfully parsed ${citations.length} citations`);
-        
-        // Validate we have 1-4 citations
-        if (citations.length < 1) {
-          console.warn("Warning: Less than 1 citation provided");
-        } else if (citations.length > 4) {
-          console.warn("Warning: More than 4 citations, trimming to 4");
-          citations = citations.slice(0, 4);
+        if (hadithCitations.length > 4) {
+          hadithCitations = hadithCitations.slice(0, 4);
         }
-        
-        // Remove the CITATIONS block from the content
-        mainContent = content.replace(/CITATIONS_START[\s\S]*?CITATIONS_END/g, "").trim();
+        mainContent = mainContent.replace(/HADITH_CITATIONS_START[\s\S]*?HADITH_CITATIONS_END/g, "").trim();
       } catch (e) {
-        console.error("Failed to parse citations:", e);
-        console.error("Full citations text:", citationsMatch[1]);
-        mainContent = content.replace(/CITATIONS_START[\s\S]*?CITATIONS_END/g, "").trim();
+        console.error("Failed to parse hadith citations:", e);
+        mainContent = mainContent.replace(/HADITH_CITATIONS_START[\s\S]*?HADITH_CITATIONS_END/g, "").trim();
       }
-    } else {
-      console.warn("No CITATIONS_START/END block found in response");
     }
 
-    // Ensure the ending note is present only if we have citations
-    if (citations.length > 0 && !mainContent.includes("💡 Important:")) {
-      mainContent += "\n\n💡 Important: These authentic hadiths are sourced from sunnah.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.";
+    // Also check for old format (backwards compatibility)
+    const oldCitationsMatch = mainContent.match(/CITATIONS_START\s*([\s\S]*?)\s*CITATIONS_END/);
+    if (oldCitationsMatch && hadithCitations.length === 0) {
+      try {
+        let citationsJson = oldCitationsMatch[1].trim();
+        citationsJson = citationsJson.replace(/\n\s*/g, ' ').replace(/\s+/g, ' ');
+        hadithCitations = JSON.parse(citationsJson);
+        mainContent = mainContent.replace(/CITATIONS_START[\s\S]*?CITATIONS_END/g, "").trim();
+      } catch (e) {
+        console.error("Failed to parse old format citations:", e);
+        mainContent = mainContent.replace(/CITATIONS_START[\s\S]*?CITATIONS_END/g, "").trim();
+      }
+    }
+
+    // Parse Quran citations
+    const quranMatch = content.match(/QURAN_CITATIONS_START\s*([\s\S]*?)\s*QURAN_CITATIONS_END/);
+    if (quranMatch) {
+      try {
+        let citationsJson = quranMatch[1].trim();
+        console.log("Raw quran citations JSON:", citationsJson);
+        citationsJson = citationsJson.replace(/\n\s*/g, ' ').replace(/\s+/g, ' ');
+        quranCitations = JSON.parse(citationsJson);
+        console.log(`Successfully parsed ${quranCitations.length} quran citations`);
+        
+        if (quranCitations.length > 3) {
+          quranCitations = quranCitations.slice(0, 3);
+        }
+        mainContent = mainContent.replace(/QURAN_CITATIONS_START[\s\S]*?QURAN_CITATIONS_END/g, "").trim();
+      } catch (e) {
+        console.error("Failed to parse quran citations:", e);
+        mainContent = mainContent.replace(/QURAN_CITATIONS_START[\s\S]*?QURAN_CITATIONS_END/g, "").trim();
+      }
+    }
+
+    // Clean up any remaining citation markers
+    mainContent = mainContent.replace(/HADITH_CITATIONS_START|HADITH_CITATIONS_END|QURAN_CITATIONS_START|QURAN_CITATIONS_END|CITATIONS_START|CITATIONS_END/g, "").trim();
+
+    // Ensure the ending note is present if we have any citations
+    if ((hadithCitations.length > 0 || quranCitations.length > 0) && !mainContent.includes("💡 Important:")) {
+      mainContent += "\n\n💡 Important: These authentic sources are from sunnah.com and quran.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.";
     }
 
     return new Response(
       JSON.stringify({
         content: mainContent,
-        citations: citations,
+        citations: hadithCitations,
+        quranCitations: quranCitations,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
