@@ -1,5 +1,6 @@
 import { ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import QuranCitation, { QuranCitationData } from "@/components/QuranCitation";
 
 interface Citation {
   collection: string;
@@ -14,10 +15,11 @@ interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
   citations?: Citation[];
+  quranCitations?: QuranCitationData[];
   timestamp?: Date;
 }
 
-const ChatMessage = ({ role, content, citations, timestamp }: ChatMessageProps) => {
+const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: ChatMessageProps) => {
 
   if (role === "user") {
     return (
@@ -46,7 +48,7 @@ const ChatMessage = ({ role, content, citations, timestamp }: ChatMessageProps) 
             ))}
           </div>
 
-          {/* Citations Section */}
+          {/* Hadith Citations Section */}
           {citations && citations.length > 0 && (
             <div className="border-t border-accent/20 pt-5 space-y-4">
               <div className="flex items-center gap-2 text-xs font-bold text-accent uppercase tracking-wider">
@@ -97,10 +99,24 @@ const ChatMessage = ({ role, content, citations, timestamp }: ChatMessageProps) 
             </div>
           )}
 
+          {/* Quran Citations Section */}
+          {quranCitations && quranCitations.length > 0 && (
+            <div className="border-t border-emerald-500/20 pt-5 mt-4 space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 uppercase tracking-wider">
+                <BookOpen className="w-5 h-5" />
+                {quranCitations.length} Quran Verse{quranCitations.length > 1 ? 's' : ''}
+              </div>
+
+              {quranCitations.map((citation, index) => (
+                <QuranCitation key={index} citation={citation} />
+              ))}
+            </div>
+          )}
+
           {/* Context/Notes */}
           <div className="mt-5 pt-4 border-t border-accent/20">
             <p className="text-xs text-foreground/70 leading-relaxed bg-accent/5 p-3 rounded-lg">
-              💡 <span className="font-semibold text-accent">Important:</span> These authentic hadiths are sourced from sunnah.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.
+              💡 <span className="font-semibold text-accent">Important:</span> These authentic sources are from sunnah.com and quran.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.
             </p>
           </div>
         </div>
