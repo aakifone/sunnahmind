@@ -108,6 +108,7 @@ const Chat = () => {
         role: message.role,
         content: message.content,
         citations: message.citations || null,
+        quran_citations: message.quranCitations || null,
       });
 
     if (error) {
@@ -131,10 +132,11 @@ const Chat = () => {
       return;
     }
 
-    const loadedMessages: Message[] = data.map((msg) => ({
+    const loadedMessages: Message[] = data.map((msg: any) => ({
       role: msg.role as "user" | "assistant",
       content: msg.content,
       citations: msg.citations as any[],
+      quranCitations: msg.quran_citations as any[],
       timestamp: new Date(msg.created_at),
     }));
 
