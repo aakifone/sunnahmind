@@ -95,6 +95,46 @@ serve(async (req) => {
       }
     }
 
+    // Fetch word-by-word data
+    if (type === "wordbyword") {
+      try {
+        // Use quran.com API with word_fields
+        const response = await fetch(
+          `https://api.quran.com/api/v4/verses/by_key/${surahNumber}:${ayahNumber}?words=true&word_fields=text_uthmani,text_indopak&word_translation_language=en`,
+          { headers: { "Accept": "application/json" } }
+        );
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const words = data.verse?.words || [];
+        
+        // Extract word-by-word data
+        const wordByWord = words
+          .filter((word: any) => word.char_type_name === "word") // Filter out "end" markers
+          .map((word: any) => ({
+            id: word.id,
+            position: word.position,
+            arabic: word.text_uthmani || word.text_indopak || "",
+            translation: word.translation?.text || "",
+            transliteration: word.transliteration?.text || "",
+          }));
+        
+        return new Response(
+          JSON.stringify({ words: wordByWord }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (e) {
+        console.error("Error fetching word-by-word:", e);
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch word-by-word data" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Fetch audio
     if (type === "audio") {
       try {
@@ -152,7 +192,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: "Invalid type. Use 'translation', 'tafsir', 'audio', or 'reciters'" }),
+      JSON.stringify({ error: "Invalid type. Use 'translation', 'tafsir', 'audio', 'wordbyword', or 'reciters'" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
