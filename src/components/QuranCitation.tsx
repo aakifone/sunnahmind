@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ExternalLink, BookOpen, ChevronDown, Play, Pause, Volume2 } from "lucide-react";
+import { ExternalLink, BookOpen, ChevronDown, Play, Pause, Volume2, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,6 +7,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -18,6 +24,14 @@ export interface QuranCitationData {
   arabicText: string;
   translation: string;
   url: string;
+}
+
+interface WordData {
+  id: number;
+  position: number;
+  arabic: string;
+  translation: string;
+  transliteration: string;
 }
 
 interface QuranCitationProps {
@@ -41,6 +55,11 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Word-by-word state
+  const [showWordByWord, setShowWordByWord] = useState(false);
+  const [wordByWordData, setWordByWordData] = useState<WordData[]>([]);
+  const [isLoadingWords, setIsLoadingWords] = useState(false);
 
   const fetchTafsir = async () => {
     if (tafsirContent) return;
@@ -68,6 +87,40 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
     } finally {
       setIsLoadingContent(false);
     }
+  };
+
+  const fetchWordByWord = async () => {
+    if (wordByWordData.length > 0) return; // Already fetched
+    
+    setIsLoadingWords(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("quran-fetch", {
+        body: {
+          surahNumber: citation.surahNumber,
+          ayahNumber: citation.ayahNumber,
+          type: "wordbyword",
+        },
+      });
+
+      if (error) throw error;
+      setWordByWordData(data.words || []);
+    } catch (err) {
+      console.error("Error fetching word-by-word:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load word-by-word data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingWords(false);
+    }
+  };
+
+  const toggleWordByWord = async () => {
+    if (!showWordByWord) {
+      await fetchWordByWord();
+    }
+    setShowWordByWord(!showWordByWord);
   };
 
   const handleViewChange = async (mode: "translation" | "tafsir") => {
@@ -155,10 +208,54 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
             )}
           </div>
           
-          {/* Arabic Text */}
-          <p className="text-lg text-foreground font-arabic leading-loose text-right mb-3 bg-background/30 p-3 rounded-lg" dir="rtl">
-            {citation.arabicText}
-          </p>
+          {/* Arabic Text - Toggle between regular and word-by-word view */}
+          {showWordByWord && wordByWordData.length > 0 ? (
+            <TooltipProvider delayDuration={100}>
+              <div 
+                className="text-lg text-foreground font-arabic leading-[2.5] text-right mb-3 bg-background/30 p-3 rounded-lg flex flex-wrap justify-end gap-x-3 gap-y-1" 
+                dir="rtl"
+              >
+                {wordByWordData.map((word) => (
+                  <Tooltip key={word.id}>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-pointer hover:bg-emerald-500/20 hover:text-emerald-600 px-1 py-0.5 rounded transition-colors inline-block">
+                        {word.arabic}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      side="top" 
+                      className="bg-popover border border-emerald-500/30 text-foreground px-3 py-2 max-w-[200px] z-50"
+                    >
+                      <div className="text-center space-y-1">
+                        <p className="text-xs text-muted-foreground italic">{word.transliteration}</p>
+                        <p className="text-sm font-medium text-emerald-600">{word.translation}</p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </TooltipProvider>
+          ) : (
+            <p className="text-lg text-foreground font-arabic leading-loose text-right mb-3 bg-background/30 p-3 rounded-lg" dir="rtl">
+              {citation.arabicText}
+            </p>
+          )}
+          
+          {/* Word-by-Word Toggle Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleWordByWord}
+            disabled={isLoadingWords}
+            className="h-7 gap-1.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 mb-2"
+          >
+            {isLoadingWords ? (
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-emerald-500"></div>
+            ) : (
+              <Languages className="w-3.5 h-3.5" />
+            )}
+            {showWordByWord ? "Hide Word-by-Word" : "Word-by-Word Translation"}
+          </Button>
         </div>
 
         <Button
