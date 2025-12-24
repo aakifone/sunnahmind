@@ -55,6 +55,7 @@ export type Database = {
       conversations: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           is_archived: boolean
           sort_order: number | null
@@ -64,6 +65,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_archived?: boolean
           sort_order?: number | null
@@ -73,6 +75,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_archived?: boolean
           sort_order?: number | null
