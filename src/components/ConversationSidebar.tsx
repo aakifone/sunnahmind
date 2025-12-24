@@ -10,6 +10,7 @@ import {
   Menu,
   Search,
   AlertTriangle,
+  GripVertical,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
@@ -23,7 +24,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import SwipeableConversationItem from "./SwipeableConversationItem";
+import MushafIcon from "./icons/MushafIcon";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Conversation {
   id: string;
@@ -42,6 +64,71 @@ interface ConversationSidebarProps {
   refreshTrigger?: number;
 }
 
+// Sortable wrapper component
+const SortableItem = ({
+  conv,
+  currentConversationId,
+  onSelectConversation,
+  onArchive,
+  onDelete,
+  onRestore,
+  onRename,
+  onStartEdit,
+  isMobile,
+}: {
+  conv: Conversation;
+  currentConversationId: string | null;
+  onSelectConversation: (id: string) => void;
+  onArchive: (id: string) => void;
+  onDelete: (id: string) => void;
+  onRestore: (id: string) => void;
+  onRename: (id: string, newTitle: string) => void;
+  onStartEdit: (id: string) => void;
+  isMobile: boolean;
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: conv.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <SwipeableConversationItem
+        conv={conv}
+        currentConversationId={currentConversationId}
+        onSelectConversation={onSelectConversation}
+        onArchive={onArchive}
+        onDelete={onDelete}
+        onRestore={onRestore}
+        onRename={onRename}
+        onStartEdit={onStartEdit}
+        isDraggable={!isMobile}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
+  );
+};
+
+// Drag overlay item
+const DragOverlayItem = ({ conv }: { conv: Conversation }) => (
+  <div className="flex items-center gap-2 p-3 rounded-lg bg-card border border-accent shadow-xl">
+    <GripVertical className="w-4 h-4 text-muted-foreground" />
+    <MushafIcon className="w-4 h-4" size={16} />
+    <span className="text-sm truncate">{conv.title}</span>
+  </div>
+);
+
 const ConversationSidebar = ({
   currentConversationId,
   onSelectConversation,
@@ -57,7 +144,20 @@ const ConversationSidebar = ({
   const [collapsed, setCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     loadConversations();
@@ -225,6 +325,42 @@ const ConversationSidebar = ({
     }
   };
 
+  const updateSortOrder = async (reorderedConversations: Conversation[]) => {
+    const updates = reorderedConversations.map((conv, index) => ({
+      id: conv.id,
+      sort_order: index,
+    }));
+
+    for (const update of updates) {
+      await supabase
+        .from("conversations")
+        .update({ sort_order: update.sort_order })
+        .eq("id", update.id);
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = conversations.findIndex((conv) => conv.id === active.id);
+    const newIndex = conversations.findIndex((conv) => conv.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reordered = arrayMove(conversations, oldIndex, newIndex);
+      setConversations(reordered);
+      await updateSortOrder(reordered);
+    }
+  };
+
+  const activeConversation = conversations.find((c) => c.id === activeId);
+
   const filteredConversations = conversations.filter((conv) =>
     conv.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -283,29 +419,50 @@ const ConversationSidebar = ({
           />
         </div>
         
-        {/* Swipe instructions */}
-        <div className="mt-3 text-xs text-muted-foreground space-y-1">
-          <p>← Swipe left to archive</p>
-          <p>→ Swipe right to rename</p>
+        {/* Instructions hint */}
+        <div className="mt-3 text-xs text-muted-foreground">
+          {isMobile ? (
+            <p>← Swipe left for actions</p>
+          ) : (
+            <p>Right-click for options • Drag to reorder</p>
+          )}
         </div>
       </div>
 
-      <ScrollArea className="flex-1 p-2">
-        <div className="space-y-1">
-          {filteredConversations.map((conv) => (
-            <SwipeableConversationItem
-              key={conv.id}
-              conv={conv}
-              currentConversationId={currentConversationId}
-              onSelectConversation={onSelectConversation}
-              onArchive={handleArchive}
-              onDelete={handleSoftDelete}
-              onRestore={handleRestore}
-              onRename={handleRename}
-            />
-          ))}
-        </div>
-      </ScrollArea>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <ScrollArea className="flex-1 p-2">
+          <SortableContext
+            items={filteredConversations.map((c) => c.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-1">
+              {filteredConversations.map((conv) => (
+                <SortableItem
+                  key={conv.id}
+                  conv={conv}
+                  currentConversationId={currentConversationId}
+                  onSelectConversation={onSelectConversation}
+                  onArchive={handleArchive}
+                  onDelete={handleSoftDelete}
+                  onRestore={handleRestore}
+                  onRename={handleRename}
+                  onStartEdit={() => {}}
+                  isMobile={isMobile}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </ScrollArea>
+
+        <DragOverlay>
+          {activeConversation ? <DragOverlayItem conv={activeConversation} /> : null}
+        </DragOverlay>
+      </DndContext>
 
       <Separator />
 
@@ -323,19 +480,17 @@ const ConversationSidebar = ({
         {showArchive && archivedConversations.length > 0 && (
           <ScrollArea className="max-h-48">
             <div className="space-y-1 pl-2">
-              <p className="text-xs text-muted-foreground mb-2">
-                ← Swipe left to restore • → Swipe right to rename
-              </p>
               {archivedConversations.map((conv) => (
                 <SwipeableConversationItem
                   key={conv.id}
                   conv={conv}
                   currentConversationId={currentConversationId}
                   onSelectConversation={onSelectConversation}
-                  onArchive={handleSoftDelete}
+                  onArchive={handleArchive}
                   onDelete={handleSoftDelete}
                   onRestore={handleRestore}
                   onRename={handleRename}
+                  onStartEdit={() => {}}
                   isArchived
                 />
               ))}
@@ -356,9 +511,6 @@ const ConversationSidebar = ({
         {showDeleted && deletedConversations.length > 0 && (
           <ScrollArea className="max-h-48">
             <div className="space-y-1 pl-2">
-              <p className="text-xs text-muted-foreground mb-2">
-                ← Swipe left to archive • → Swipe right to restore
-              </p>
               {deletedConversations.map((conv) => (
                 <div key={conv.id} className="space-y-1">
                   <SwipeableConversationItem
@@ -369,6 +521,7 @@ const ConversationSidebar = ({
                     onDelete={() => {}}
                     onRestore={handleRestore}
                     onRename={handleRename}
+                    onStartEdit={() => {}}
                     isDeleted
                   />
                   <Button

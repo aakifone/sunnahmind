@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { Check, X } from "lucide-react";
+import { Check, X, Archive, Trash2, RotateCcw, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MushafIcon from "@/components/icons/MushafIcon";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Conversation {
   id: string;
@@ -21,8 +28,11 @@ interface SwipeableConversationItemProps {
   onDelete: (id: string) => void;
   onRestore: (id: string) => void;
   onRename: (id: string, newTitle: string) => void;
+  onStartEdit: (id: string) => void;
   isDeleted?: boolean;
   isArchived?: boolean;
+  isDraggable?: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
 const SwipeableConversationItem = ({
@@ -33,19 +43,23 @@ const SwipeableConversationItem = ({
   onDelete,
   onRestore,
   onRename,
+  onStartEdit,
   isDeleted = false,
   isArchived = false,
+  isDraggable = false,
+  dragHandleProps,
 }: SwipeableConversationItemProps) => {
   const [swipeX, setSwipeX] = useState(0);
   const [startX, setStartX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(conv.title);
+  const [showActions, setShowActions] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
-  const SWIPE_THRESHOLD = 80;
-  const RENAME_THRESHOLD = 60;
+  const SWIPE_THRESHOLD = 60;
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -54,58 +68,44 @@ const SwipeableConversationItem = ({
     }
   }, [isEditing]);
 
+  // Reset swipe when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (itemRef.current && !itemRef.current.contains(e.target as Node)) {
+        setShowActions(false);
+        setSwipeX(0);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile) return;
     setStartX(e.touches[0].clientX);
     setIsSwiping(true);
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setStartX(e.clientX);
-    setIsSwiping(true);
-  };
-
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isSwiping) return;
+    if (!isSwiping || !isMobile) return;
     const currentX = e.touches[0].clientX;
     const diff = currentX - startX;
-    setSwipeX(Math.max(-150, Math.min(150, diff)));
+    // Only allow left swipe (negative)
+    setSwipeX(Math.max(-120, Math.min(0, diff)));
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isSwiping) return;
-    const diff = e.clientX - startX;
-    setSwipeX(Math.max(-150, Math.min(150, diff)));
-  };
-
-  const handleEnd = () => {
-    if (!isSwiping) return;
+  const handleTouchEnd = () => {
+    if (!isSwiping || !isMobile) return;
     setIsSwiping(false);
 
-    // Swipe right to rename (only if not deleted)
-    if (swipeX > RENAME_THRESHOLD && !isDeleted) {
-      setIsEditing(true);
-      setEditTitle(conv.title);
+    // If swiped past threshold, show action buttons
+    if (swipeX < -SWIPE_THRESHOLD) {
+      setShowActions(true);
+      setSwipeX(-120); // Lock in position to show buttons
+    } else {
+      setShowActions(false);
+      setSwipeX(0);
     }
-    // Swipe left to archive (blue)
-    else if (swipeX < -SWIPE_THRESHOLD) {
-      if (isDeleted) {
-        // From deleted -> archive
-        onArchive(conv.id);
-      } else if (isArchived) {
-        // From archived -> restore to active
-        onRestore(conv.id);
-      } else {
-        // From active -> archive
-        onArchive(conv.id);
-      }
-    }
-    // Swipe right past threshold to delete (red) - only for already swiping right
-    else if (swipeX > SWIPE_THRESHOLD && isDeleted) {
-      // Already deleted, restore
-      onRestore(conv.id);
-    }
-
-    setSwipeX(0);
   };
 
   const handleSaveRename = () => {
@@ -120,28 +120,11 @@ const SwipeableConversationItem = ({
     setIsEditing(false);
   };
 
-  // Determine background color based on swipe direction
-  const getBackgroundStyle = () => {
-    if (swipeX < -20) {
-      // Swiping left - archive (blue)
-      const intensity = Math.min(Math.abs(swipeX) / SWIPE_THRESHOLD, 1);
-      return {
-        background: `hsl(210, 70%, ${50 - intensity * 10}%, ${intensity * 0.4})`,
-      };
-    } else if (swipeX > 20 && !isDeleted) {
-      // Swiping right - rename (subtle)
-      const intensity = Math.min(swipeX / RENAME_THRESHOLD, 1);
-      return {
-        background: `hsl(var(--accent) / ${intensity * 0.3})`,
-      };
-    } else if (swipeX > 20 && isDeleted) {
-      // Swiping right on deleted - restore (green)
-      const intensity = Math.min(swipeX / SWIPE_THRESHOLD, 1);
-      return {
-        background: `hsl(142, 70%, 45%, ${intensity * 0.4})`,
-      };
-    }
-    return {};
+  const startEditing = () => {
+    setEditTitle(conv.title);
+    setIsEditing(true);
+    setShowActions(false);
+    setSwipeX(0);
   };
 
   // Calculate days until permanent deletion for deleted items
@@ -156,7 +139,7 @@ const SwipeableConversationItem = ({
 
   const daysRemaining = getDaysRemaining();
 
-  return (
+  const renderContent = () => (
     <div
       ref={itemRef}
       className={`relative overflow-hidden rounded-lg transition-colors ${
@@ -164,43 +147,107 @@ const SwipeableConversationItem = ({
           ? "bg-accent text-accent-foreground"
           : "hover:bg-accent/20"
       }`}
-      style={getBackgroundStyle()}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
-      onTouchEnd={handleEnd}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleEnd}
-      onMouseLeave={() => {
-        if (isSwiping) {
-          setIsSwiping(false);
-          setSwipeX(0);
-        }
-      }}
+      onTouchEnd={handleTouchEnd}
     >
-      {/* Swipe indicator icons */}
-      {swipeX < -20 && (
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 text-blue-400">
-          <span className="text-xs font-medium">
-            {isArchived ? "Restore" : "Archive"}
-          </span>
-        </div>
-      )}
-      {swipeX > 20 && !isDeleted && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-accent-foreground/70">
-          <span className="text-xs font-medium">Rename</span>
-        </div>
-      )}
-      {swipeX > 20 && isDeleted && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-400">
-          <span className="text-xs font-medium">Restore</span>
+      {/* Action buttons revealed on swipe (mobile only) */}
+      {isMobile && (
+        <div className="absolute right-0 top-0 bottom-0 flex items-center">
+          {isDeleted ? (
+            <>
+              <Button
+                size="sm"
+                className="h-full rounded-none px-4 bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  onRestore(conv.id);
+                  setShowActions(false);
+                  setSwipeX(0);
+                }}
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                className="h-full rounded-none px-4 bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+                  onArchive(conv.id);
+                  setShowActions(false);
+                  setSwipeX(0);
+                }}
+              >
+                <Archive className="w-4 h-4" />
+              </Button>
+            </>
+          ) : isArchived ? (
+            <>
+              <Button
+                size="sm"
+                className="h-full rounded-none px-4 bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  onRestore(conv.id);
+                  setShowActions(false);
+                  setSwipeX(0);
+                }}
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                className="h-full rounded-none px-4 bg-destructive hover:bg-destructive/90 text-white"
+                onClick={() => {
+                  onDelete(conv.id);
+                  setShowActions(false);
+                  setSwipeX(0);
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                className="h-full rounded-none px-4 bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+                  onArchive(conv.id);
+                  setShowActions(false);
+                  setSwipeX(0);
+                }}
+              >
+                <Archive className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                className="h-full rounded-none px-4 bg-destructive hover:bg-destructive/90 text-white"
+                onClick={() => {
+                  onDelete(conv.id);
+                  setShowActions(false);
+                  setSwipeX(0);
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </>
+          )}
         </div>
       )}
 
       <div
-        className="flex items-center gap-2 p-3 transition-transform"
-        style={{ transform: `translateX(${swipeX}px)` }}
+        className="flex items-center gap-2 p-3 transition-transform bg-card"
+        style={{ transform: isMobile ? `translateX(${swipeX}px)` : undefined }}
       >
+        {/* Drag handle for desktop */}
+        {isDraggable && !isMobile && dragHandleProps && (
+          <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing touch-none">
+            <div className="w-4 h-4 flex flex-col justify-center gap-0.5">
+              <div className="w-full h-0.5 bg-muted-foreground/50 rounded" />
+              <div className="w-full h-0.5 bg-muted-foreground/50 rounded" />
+              <div className="w-full h-0.5 bg-muted-foreground/50 rounded" />
+            </div>
+          </div>
+        )}
+
         <MushafIcon className="flex-shrink-0 text-current" size={16} />
 
         {isEditing ? (
@@ -248,6 +295,70 @@ const SwipeableConversationItem = ({
       </div>
     </div>
   );
+
+  // Desktop: wrap with context menu
+  if (!isMobile) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          {renderContent()}
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-48">
+          {isDeleted ? (
+            <>
+              <ContextMenuItem onClick={() => onRestore(conv.id)}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Restore
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => onArchive(conv.id)}>
+                <Archive className="w-4 h-4 mr-2" />
+                Move to Archive
+              </ContextMenuItem>
+            </>
+          ) : isArchived ? (
+            <>
+              <ContextMenuItem onClick={() => onRestore(conv.id)}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Unarchive
+              </ContextMenuItem>
+              <ContextMenuItem onClick={startEditing}>
+                <Edit2 className="w-4 h-4 mr-2" />
+                Rename
+              </ContextMenuItem>
+              <ContextMenuItem 
+                onClick={() => onDelete(conv.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </ContextMenuItem>
+            </>
+          ) : (
+            <>
+              <ContextMenuItem onClick={startEditing}>
+                <Edit2 className="w-4 h-4 mr-2" />
+                Rename
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => onArchive(conv.id)}>
+                <Archive className="w-4 h-4 mr-2" />
+                Archive
+              </ContextMenuItem>
+              <ContextMenuItem 
+                onClick={() => onDelete(conv.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
+
+  // Mobile: just render the swipeable content
+  return renderContent();
 };
 
 export default SwipeableConversationItem;
