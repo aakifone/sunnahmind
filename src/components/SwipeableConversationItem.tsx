@@ -29,6 +29,7 @@ interface SwipeableConversationItemProps {
   onRestore: (id: string) => void;
   onRename: (id: string, newTitle: string) => void;
   onStartEdit: (id: string) => void;
+  onPermanentDelete?: (id: string) => void;
   isDeleted?: boolean;
   isArchived?: boolean;
   isDraggable?: boolean;
@@ -44,6 +45,7 @@ const SwipeableConversationItem = ({
   onRestore,
   onRename,
   onStartEdit,
+  onPermanentDelete,
   isDeleted = false,
   isArchived = false,
   isDraggable = false,
@@ -314,6 +316,15 @@ const SwipeableConversationItem = ({
                 <Archive className="w-4 h-4 mr-2" />
                 Move to Archive
               </ContextMenuItem>
+              {onPermanentDelete && (
+                <ContextMenuItem 
+                  onClick={() => onPermanentDelete(conv.id)}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Permanently
+                </ContextMenuItem>
+              )}
             </>
           ) : isArchived ? (
             <>

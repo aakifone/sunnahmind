@@ -522,6 +522,7 @@ const ConversationSidebar = ({
                     onRestore={handleRestore}
                     onRename={handleRename}
                     onStartEdit={() => {}}
+                    onPermanentDelete={(id) => setPermanentDeleteId(id)}
                     isDeleted
                   />
                   <Button
