@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Sparkles, LogIn, Home } from "lucide-react";
@@ -21,6 +21,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { z } from 'zod';
 
+// Slash command imports
+import { SlashCommand, ActiveCommand } from "@/types/commands";
+import SlashCommandMenu from "@/components/commands/SlashCommandMenu";
+import PlusButtonMenu from "@/components/commands/PlusButtonMenu";
+import CommandBubble from "@/components/commands/CommandBubble";
+import TopicSelector from "@/components/commands/TopicSelector";
+import BatchProgressNotification from "@/components/commands/BatchProgressNotification";
+import BatchDisplay from "@/components/commands/BatchDisplay";
+import ShareImageGenerator from "@/components/commands/ShareImageGenerator";
+import { useSlashCommands } from "@/hooks/useSlashCommands";
+import { useFavorites } from "@/hooks/useFavorites";
+
 const messageSchema = z.object({
   content: z.string()
     .min(1, 'Message cannot be empty')
@@ -34,6 +46,11 @@ interface Message {
   citations?: any[];
   quranCitations?: any[];
   timestamp: Date;
+}
+
+interface BatchData {
+  hadiths: { collection: string; number: string; text: string; url?: string }[];
+  quranVerses: { surah: number; ayah: number; text: string; translation: string }[];
 }
 
 const Chat = () => {
@@ -55,8 +72,41 @@ const Chat = () => {
   const [hasAskedFirstQuestion, setHasAskedFirstQuestion] = useState(false);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
 
+  // Batch mode state
+  const [batchData, setBatchData] = useState<BatchData>({ hadiths: [], quranVerses: [] });
+  const [isBatchLoading, setIsBatchLoading] = useState(false);
+  const [showBatchProgress, setShowBatchProgress] = useState(false);
+
+  // Current hadith for save/share (from last assistant message)
+  const [currentHadith, setCurrentHadith] = useState<{
+    arabic?: string;
+    english: string;
+    reference: string;
+  } | null>(null);
+
+  // Has any query been submitted
+  const hasQuerySubmitted = messages.length > 1;
+
+  // Slash commands hook
+  const {
+    isMenuOpen,
+    menuSearchQuery,
+    selectedIndex,
+    activeCommand,
+    handleKeyDown,
+    selectCommand,
+    cancelCommand,
+    setActiveCommand,
+  } = useSlashCommands({
+    input,
+    setInput,
+    hasQuerySubmitted,
+  });
+
+  // Favorites hook
+  const { favorites, saveFavorite, removeFavorite, isFavorite } = useFavorites();
+
   useEffect(() => {
-    // Check authentication (but don't redirect, allow anonymous usage)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
@@ -70,6 +120,19 @@ const Chat = () => {
 
   useEffect(() => {
     scrollToBottom();
+  }, [messages]);
+
+  // Extract current hadith from last assistant message
+  useEffect(() => {
+    const lastAssistantMessage = [...messages].reverse().find(m => m.role === "assistant" && m.citations && m.citations.length > 0);
+    if (lastAssistantMessage?.citations?.[0]) {
+      const citation = lastAssistantMessage.citations[0];
+      setCurrentHadith({
+        arabic: citation.arabic,
+        english: citation.translation || citation.text || lastAssistantMessage.content.slice(0, 200),
+        reference: `${citation.collection} #${citation.hadithNumber}`,
+      });
+    }
   }, [messages]);
 
   const scrollToBottom = () => {
@@ -153,12 +216,220 @@ const Chat = () => {
         timestamp: new Date(),
       }
     ]);
+    setBatchData({ hadiths: [], quranVerses: [] });
+    cancelCommand();
   };
+
+  // Handle command execution
+  const handleCommandExecution = useCallback(async (commandId: ActiveCommand, topic?: string) => {
+    if (!commandId) return;
+
+    switch (commandId) {
+      case 'daily':
+        // Execute daily hadith
+        setIsLoading(true);
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: [{ role: "user", content: "Give me a beautiful Hadith of the Day for reflection and spiritual growth. Choose one that is universally beneficial." }],
+              }),
+            }
+          );
+          const data = await response.json();
+          setMessages(prev => [...prev, {
+            role: "assistant",
+            content: data.content,
+            citations: data.citations,
+            quranCitations: data.quranCitations,
+            timestamp: new Date(),
+          }]);
+        } catch (error) {
+          toast({ title: "Error", description: "Failed to get Hadith of the Day", variant: "destructive" });
+        } finally {
+          setIsLoading(false);
+          cancelCommand();
+        }
+        break;
+
+      case 'topic':
+        if (topic) {
+          setIsLoading(true);
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  messages: [{ role: "user", content: `Give me 1-3 authentic hadiths about ${topic}. Include references from sunnah.com.` }],
+                }),
+              }
+            );
+            const data = await response.json();
+            setMessages(prev => [...prev, {
+              role: "assistant",
+              content: data.content,
+              citations: data.citations,
+              quranCitations: data.quranCitations,
+              timestamp: new Date(),
+            }]);
+          } catch (error) {
+            toast({ title: "Error", description: "Failed to get topic hadiths", variant: "destructive" });
+          } finally {
+            setIsLoading(false);
+            cancelCommand();
+          }
+        }
+        break;
+
+      case 'explain':
+        if (currentHadith) {
+          setIsLoading(true);
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  messages: [{ role: "user", content: `Please provide a simple educational explanation of this hadith: "${currentHadith.english}" (${currentHadith.reference}). Use clear, neutral language without any rulings or opinions. End with: "This explanation is for educational purposes only and is not a fatwa."` }],
+                }),
+              }
+            );
+            const data = await response.json();
+            setMessages(prev => [...prev, {
+              role: "assistant",
+              content: data.content,
+              citations: data.citations,
+              quranCitations: data.quranCitations,
+              timestamp: new Date(),
+            }]);
+          } catch (error) {
+            toast({ title: "Error", description: "Failed to get explanation", variant: "destructive" });
+          } finally {
+            setIsLoading(false);
+            cancelCommand();
+          }
+        } else {
+          toast({ title: "No Hadith", description: "Ask a question first to get a hadith to explain", variant: "destructive" });
+          cancelCommand();
+        }
+        break;
+
+      case 'context':
+        if (currentHadith) {
+          setIsLoading(true);
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  messages: [{ role: "user", content: `What is the historical or situational background of this hadith: "${currentHadith.english}" (${currentHadith.reference})? Explain when or why it was said. If the context is not available, please state that clearly without speculation.` }],
+                }),
+              }
+            );
+            const data = await response.json();
+            setMessages(prev => [...prev, {
+              role: "assistant",
+              content: data.content,
+              citations: data.citations,
+              quranCitations: data.quranCitations,
+              timestamp: new Date(),
+            }]);
+          } catch (error) {
+            toast({ title: "Error", description: "Failed to get context", variant: "destructive" });
+          } finally {
+            setIsLoading(false);
+            cancelCommand();
+          }
+        } else {
+          toast({ title: "No Hadith", description: "Ask a question first to get hadith context", variant: "destructive" });
+          cancelCommand();
+        }
+        break;
+
+      case 'batch':
+        setIsBatchLoading(true);
+        setShowBatchProgress(true);
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: [{ role: "user", content: "Please provide a comprehensive batch of 10-15 diverse authentic hadiths on various important topics like prayer, charity, kindness, patience, and knowledge. For each hadith, include the collection name and hadith number. Also include 10-15 related Quran verses with surah and ayah numbers." }],
+              }),
+            }
+          );
+          const data = await response.json();
+          
+          // Parse citations into batch data
+          const hadiths = (data.citations || []).map((c: any) => ({
+            collection: c.collection || "Sahih",
+            number: c.hadithNumber || "1",
+            text: c.translation || c.text || "",
+            url: c.url,
+          }));
+          
+          const quranVerses = (data.quranCitations || []).map((c: any) => ({
+            surah: c.surah || 1,
+            ayah: c.ayah || 1,
+            text: c.arabic || c.text || "",
+            translation: c.translation || "",
+          }));
+
+          setBatchData({ hadiths, quranVerses });
+          
+          // Add a message indicating batch is ready
+          setMessages(prev => [...prev, {
+            role: "assistant",
+            content: "I've prepared a comprehensive batch of authentic hadiths and Quran verses for you. You can browse them below and feel free to ask me any follow-up questions!",
+            timestamp: new Date(),
+          }]);
+        } catch (error) {
+          toast({ title: "Error", description: "Failed to generate batch", variant: "destructive" });
+        } finally {
+          setIsBatchLoading(false);
+        }
+        break;
+
+      case 'save':
+        if (currentHadith) {
+          saveFavorite({
+            arabic: currentHadith.arabic,
+            english: currentHadith.english,
+            reference: currentHadith.reference,
+          });
+          cancelCommand();
+        } else {
+          toast({ title: "No Hadith", description: "No hadith available to save", variant: "destructive" });
+          cancelCommand();
+        }
+        break;
+
+      case 'share':
+        // Share command keeps bubble open for image generation
+        break;
+    }
+  }, [currentHadith, saveFavorite, toast, cancelCommand]);
+
+  // Auto-execute certain commands immediately
+  useEffect(() => {
+    if (activeCommand && ['daily', 'explain', 'context', 'batch', 'save'].includes(activeCommand)) {
+      handleCommandExecution(activeCommand);
+    }
+  }, [activeCommand]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    // Validate input
     const validation = messageSchema.safeParse({ content: input });
     if (!validation.success) {
       toast({
@@ -169,7 +440,6 @@ const Chat = () => {
       return;
     }
 
-    // Show sign up dialog after first question for anonymous users
     if (!session?.user && !hasAskedFirstQuestion) {
       setHasAskedFirstQuestion(true);
       setShowSignUpDialog(true);
@@ -177,7 +447,6 @@ const Chat = () => {
 
     let conversationId = currentConversationId;
 
-    // Create new conversation if user is logged in and none exists
     if (session?.user && !conversationId) {
       conversationId = await createNewConversation();
       if (!conversationId) return;
@@ -192,7 +461,6 @@ const Chat = () => {
 
     setMessages(prev => [...prev, userMessage]);
     
-    // Only save message if user is logged in
     if (session?.user && conversationId) {
       await saveMessage(conversationId, userMessage);
     }
@@ -205,9 +473,7 @@ const Chat = () => {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages: [
               ...messages.map(msg => ({
@@ -221,7 +487,6 @@ const Chat = () => {
       );
 
       if (!response.ok) {
-        console.error('API error:', response.status);
         throw new Error('Failed to get response from service');
       }
 
@@ -237,11 +502,9 @@ const Chat = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
       
-      // Only save message and update title if user is logged in
       if (session?.user && conversationId) {
         await saveMessage(conversationId, assistantMessage);
 
-        // Update conversation title with first user message
         if (messages.length === 1) {
           await updateConversationTitle(conversationId, input);
         }
@@ -268,13 +531,15 @@ const Chat = () => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
+    // Handle slash command navigation first
+    if (handleKeyDown(e)) return;
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  // Auto-update conversation title after first user message
   const updateConversationTitle = async (conversationId: string, userMessage: string) => {
     const title = userMessage.slice(0, 50) + (userMessage.length > 50 ? "..." : "");
     await supabase
@@ -282,13 +547,25 @@ const Chat = () => {
       .update({ title })
       .eq("id", conversationId);
     
-    // Trigger sidebar refresh to show updated title immediately
     setRefreshSidebar(prev => prev + 1);
+  };
+
+  const handleSelectCommand = (command: SlashCommand) => {
+    selectCommand(command);
+  };
+
+  const handleTopicSelect = (topic: string) => {
+    handleCommandExecution('topic', topic);
   };
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Only show sidebar if user is logged in */}
+      {/* Batch Progress Notification */}
+      <BatchProgressNotification
+        isActive={showBatchProgress}
+        onComplete={() => setShowBatchProgress(false)}
+      />
+
       {session?.user && (
         <ConversationSidebar
           currentConversationId={currentConversationId}
@@ -296,10 +573,18 @@ const Chat = () => {
           onNewConversation={handleNewConversation}
           userId={session.user.id}
           refreshTrigger={refreshSidebar}
+          favorites={favorites}
+          onRemoveFavorite={removeFavorite}
+          onSelectFavorite={(hadith) => {
+            setMessages(prev => [...prev, {
+              role: "assistant",
+              content: `Here's a hadith from your favorites:\n\n"${hadith.english}"\n\n— ${hadith.reference}`,
+              timestamp: new Date(),
+            }]);
+          }}
         />
       )}
 
-      {/* Sign Up Dialog */}
       <AlertDialog open={showSignUpDialog} onOpenChange={setShowSignUpDialog}>
         <AlertDialogContent className="paper-texture border-accent/20">
           <AlertDialogHeader>
@@ -387,7 +672,14 @@ const Chat = () => {
               </div>
             ))}
 
-            {isLoading && (
+            {/* Batch Display */}
+            <BatchDisplay
+              hadiths={batchData.hadiths}
+              quranVerses={batchData.quranVerses}
+              isLoading={isBatchLoading}
+            />
+
+            {isLoading && !isBatchLoading && (
               <div className="flex justify-start mb-6">
                 <div className="bg-card border border-border/50 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm animate-pulse">
                   <div className="flex items-center gap-3 text-muted-foreground">
@@ -407,20 +699,56 @@ const Chat = () => {
         {/* Input Area */}
         <div className="border-t border-border/40 bg-card/50 backdrop-blur">
           <div className="max-w-4xl mx-auto px-4 py-4">
+            {/* Active Command Bubble */}
+            {activeCommand && (
+              <CommandBubble activeCommand={activeCommand} onCancel={cancelCommand}>
+                {activeCommand === 'topic' && (
+                  <TopicSelector onSelectTopic={handleTopicSelect} />
+                )}
+                {activeCommand === 'share' && currentHadith && (
+                  <ShareImageGenerator
+                    arabic={currentHadith.arabic}
+                    english={currentHadith.english}
+                    reference={currentHadith.reference}
+                    onClose={cancelCommand}
+                  />
+                )}
+                {activeCommand === 'share' && !currentHadith && (
+                  <p className="text-white/80 text-sm">No hadith available to share. Ask a question first!</p>
+                )}
+              </CommandBubble>
+            )}
+
             <div className="flex gap-2 items-end">
+              {/* Plus Button */}
+              <PlusButtonMenu
+                hasQuerySubmitted={hasQuerySubmitted}
+                onSelectCommand={handleSelectCommand}
+              />
+
               <div className="flex-1 relative">
+                {/* Slash Command Menu */}
+                <SlashCommandMenu
+                  isOpen={isMenuOpen}
+                  searchQuery={menuSearchQuery}
+                  hasQuerySubmitted={hasQuerySubmitted}
+                  selectedIndex={selectedIndex}
+                  onSelect={handleSelectCommand}
+                  onClose={() => setInput("")}
+                />
+
                 <Textarea
-                  placeholder="Ask about any topic... (e.g., 'What did the Prophet ﷺ say about charity?')"
+                  placeholder="Ask about any topic... Type / for commands"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyPress}
                   className="min-h-[60px] max-h-[200px] resize-none pr-12 bg-background border-border/50 focus:border-accent transition-colors"
                   disabled={isLoading}
                 />
               </div>
               <Button
                 onClick={handleSend}
-                disabled={!input.trim() || isLoading}
+                disabled={!input.trim() || isLoading || input.startsWith("/")}
                 size="lg"
                 className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm hover:shadow-gold-glow transition-all duration-300 hover:scale-105"
               >
@@ -429,7 +757,7 @@ const Chat = () => {
             </div>
 
             <p className="text-xs text-muted-foreground mt-2 text-center">
-              Authentic sources from sunnah.com & quran.com • Not for issuing fatwas
+              Authentic sources from sunnah.com & quran.com • Type <span className="font-mono bg-muted px-1 rounded">/</span> for commands • Not for issuing fatwas
             </p>
           </div>
         </div>

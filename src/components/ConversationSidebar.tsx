@@ -56,12 +56,18 @@ interface Conversation {
   sort_order?: number;
 }
 
+import { SavedHadith } from "@/types/commands";
+import FavoritesSection from "@/components/commands/FavoritesSection";
+
 interface ConversationSidebarProps {
   currentConversationId: string | null;
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   userId: string;
   refreshTrigger?: number;
+  favorites?: SavedHadith[];
+  onRemoveFavorite?: (id: string) => void;
+  onSelectFavorite?: (hadith: SavedHadith) => void;
 }
 
 // Sortable wrapper component
@@ -135,12 +141,16 @@ const ConversationSidebar = ({
   onNewConversation,
   userId,
   refreshTrigger,
+  favorites = [],
+  onRemoveFavorite,
+  onSelectFavorite,
 }: ConversationSidebarProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
   const [deletedConversations, setDeletedConversations] = useState<Conversation[]>([]);
   const [showArchive, setShowArchive] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
@@ -409,6 +419,17 @@ const ConversationSidebar = ({
           <Plus className="w-4 h-4" />
           New Conversation
         </Button>
+
+        {/* Favorites Section - Right under New Conversation */}
+        {favorites.length > 0 && onRemoveFavorite && onSelectFavorite && (
+          <FavoritesSection
+            favorites={favorites}
+            onRemove={onRemoveFavorite}
+            onSelect={onSelectFavorite}
+            isExpanded={showFavorites}
+            onToggle={() => setShowFavorites(!showFavorites)}
+          />
+        )}
         <div className="mt-2 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
