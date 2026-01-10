@@ -5,113 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Free Hadith API base URL (no authentication required)
-const HADITH_API_BASE = "https://hadithapi.pages.dev/api";
-
-// Collection mapping for the free API
-const COLLECTION_MAP: Record<string, string> = {
-  "bukhari": "bukhari",
-  "muslim": "muslim",
-  "abudawud": "abudawud",
-  "tirmidhi": "tirmidhi",
-  "ibnmajah": "ibnmajah"
-};
-
-// Function to search hadiths from the free API
-async function searchHadiths(query: string, collection?: string, limit: number = 5): Promise<any[]> {
-  try {
-    const url = new URL(`${HADITH_API_BASE}/search`);
-    url.searchParams.append('q', query);
-    if (collection && COLLECTION_MAP[collection.toLowerCase()]) {
-      url.searchParams.append('collection', COLLECTION_MAP[collection.toLowerCase()]);
-    }
-    url.searchParams.append('limit', String(limit));
-    
-    console.log("Searching hadiths:", url.toString());
-    
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      console.error("Hadith API search error:", response.status);
-      return [];
-    }
-    
-    const data = await response.json();
-    return data.hadiths || data.data || [];
-  } catch (error) {
-    console.error("Error searching hadiths:", error);
-    return [];
-  }
-}
-
-// Function to get a specific hadith by collection and ID
-async function getHadith(collection: string, id: number): Promise<any | null> {
-  try {
-    const collectionKey = COLLECTION_MAP[collection.toLowerCase()];
-    if (!collectionKey) {
-      console.error("Unknown collection:", collection);
-      return null;
-    }
-    
-    const url = `${HADITH_API_BASE}/${collectionKey}/${id}`;
-    console.log("Fetching hadith:", url);
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.error("Hadith API fetch error:", response.status);
-      return null;
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching hadith:", error);
-    return null;
-  }
-}
-
-// Function to get random hadiths from a collection
-async function getRandomHadiths(collection: string, count: number = 5): Promise<any[]> {
-  try {
-    const collectionKey = COLLECTION_MAP[collection.toLowerCase()];
-    if (!collectionKey) return [];
-    
-    // Get a random page of hadiths
-    const randomPage = Math.floor(Math.random() * 50) + 1;
-    const url = `${HADITH_API_BASE}/${collectionKey}?page=${randomPage}&limit=${count}`;
-    
-    console.log("Fetching random hadiths:", url);
-    
-    const response = await fetch(url);
-    if (!response.ok) return [];
-    
-    const data = await response.json();
-    return data.hadiths || data.data || [];
-  } catch (error) {
-    console.error("Error fetching random hadiths:", error);
-    return [];
-  }
-}
-
-// Format hadith for citation
-function formatHadithCitation(hadith: any, collection: string): any {
-  const collectionNames: Record<string, string> = {
-    "bukhari": "Sahih al-Bukhari",
-    "muslim": "Sahih Muslim",
-    "abudawud": "Sunan Abu Dawud",
-    "tirmidhi": "Jami` at-Tirmidhi",
-    "ibnmajah": "Sunan Ibn Majah"
-  };
-  
-  const hadithNumber = hadith.hadith_number || hadith.hadithNumber || hadith.id || "N/A";
-  const englishText = hadith.hadith_english || hadith.text || hadith.english || "";
-  const arabicText = hadith.hadith_arabic || hadith.arabic || "";
-  
-  return {
-    collection: collectionNames[collection.toLowerCase()] || collection,
-    hadithNumber: String(hadithNumber),
-    url: `https://sunnah.com/${collection.toLowerCase()}:${hadithNumber}`,
-    translation: englishText.substring(0, 500) + (englishText.length > 500 ? "..." : ""),
-    arabic: arabicText.substring(0, 300) + (arabicText.length > 300 ? "..." : "")
-  };
+// Function to provide context about searching sunnah.com
+function getSunnahComContext(query: string): string {
+  const searchUrl = `https://sunnah.com/search?q=${encodeURIComponent(query)}`;
+  console.log("Query context for:", query);
+  return `User is searching for: "${query}". Sunnah.com search URL: ${searchUrl}`;
 }
 
 serve(async (req) => {
@@ -120,81 +18,9 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, command, topic } = await req.json();
+    const { messages } = await req.json();
 
-    // Handle batch command
-    if (command === "batch") {
-      console.log("Batch command received with topic:", topic);
-      
-      const searchTerm = topic || "faith";
-      const collections = ["bukhari", "muslim", "tirmidhi"];
-      
-      // Fetch hadiths from multiple collections
-      const hadithPromises = collections.map(col => searchHadiths(searchTerm, col, 7));
-      const hadithResults = await Promise.all(hadithPromises);
-      
-      const allHadiths: any[] = [];
-      hadithResults.forEach((hadiths, index) => {
-        hadiths.forEach((h: any) => {
-          allHadiths.push(formatHadithCitation(h, collections[index]));
-        });
-      });
-      
-      // Ensure we have 10-20 hadiths
-      const finalHadiths = allHadiths.slice(0, Math.max(10, Math.min(20, allHadiths.length)));
-      
-      return new Response(
-        JSON.stringify({
-          hadiths: finalHadiths,
-          quranVerses: [], // Quran verses handled separately
-          message: "Batch retrieval complete"
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Handle daily hadith command
-    if (command === "daily") {
-      console.log("Daily hadith command received");
-      
-      // Get a random hadith from Bukhari or Muslim
-      const collection = Math.random() > 0.5 ? "bukhari" : "muslim";
-      const hadiths = await getRandomHadiths(collection, 1);
-      
-      if (hadiths.length > 0) {
-        const hadith = formatHadithCitation(hadiths[0], collection);
-        return new Response(
-          JSON.stringify({
-            content: `📿 **Hadith of the Day**\n\nTake a moment to reflect on this beautiful teaching from the Prophet Muhammad ﷺ:\n\n_"${hadith.translation}"_\n\n— ${hadith.collection}, Hadith ${hadith.hadithNumber}\n\n💡 May Allah grant us the wisdom to implement these teachings in our daily lives.`,
-            citations: [hadith],
-            quranCitations: []
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
-    // Handle topic command
-    if (command === "topic" && topic) {
-      console.log("Topic command received:", topic);
-      
-      const hadiths = await searchHadiths(topic, undefined, 3);
-      const citations = hadiths.map((h: any) => {
-        const collection = h.collection || "bukhari";
-        return formatHadithCitation(h, collection);
-      });
-      
-      return new Response(
-        JSON.stringify({
-          content: `Here are authentic hadiths about **${topic}**:\n\n💡 Important: These authentic sources are from sunnah.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.`,
-          citations: citations.slice(0, 3),
-          quranCitations: []
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate input for regular chat
+    // Validate input
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Invalid request format' }),
@@ -228,26 +54,26 @@ serve(async (req) => {
     const isGreeting = greetingPatterns.test(userQuestion.trim());
 
     if (isGreeting) {
-      console.log("Greeting detected, fetching greeting hadiths");
-      
-      // Search for hadiths about greeting/salam
-      const greetingHadiths = await searchHadiths("salam greeting", undefined, 2);
-      const citations = greetingHadiths.length > 0 
-        ? greetingHadiths.map((h: any) => formatHadithCitation(h, h.collection || "bukhari"))
-        : [
+      console.log("Greeting detected, returning specific hadiths");
+      return new Response(
+        JSON.stringify({
+          content: "وعليكم السلام ورحمة الله وبركاته (Wa alaykumu as-salam wa rahmatullahi wa barakatuh)\n\nMay peace, mercy, and blessings of Allah be upon you! Here are authentic hadiths about the virtue of greeting with Salam:\n\n💡 Important: These authentic sources are from sunnah.com and quran.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.",
+          citations: [
             {
               collection: "Riyad as-Salihin",
               hadithNumber: "845",
               url: "https://sunnah.com/riyadussalihin:845",
               translation: "The superiority of greeting first",
               arabic: ""
+            },
+            {
+              collection: "Riyad as-Salihin",
+              hadithNumber: "844",
+              url: "https://sunnah.com/riyadussalihin:844",
+              translation: "The excellence of spreading Salam",
+              arabic: ""
             }
-          ];
-      
-      return new Response(
-        JSON.stringify({
-          content: "وعليكم السلام ورحمة الله وبركاته (Wa alaykumu as-salam wa rahmatullahi wa barakatuh)\n\nMay peace, mercy, and blessings of Allah be upon you! Here are authentic hadiths about the virtue of greeting with Salam:\n\n💡 Important: These authentic sources are from sunnah.com and quran.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.",
-          citations: citations,
+          ],
           quranCitations: []
         }),
         {
@@ -256,17 +82,8 @@ serve(async (req) => {
       );
     }
 
-    // Search for relevant hadiths based on the user's question
-    console.log("Searching for relevant hadiths...");
-    const relevantHadiths = await searchHadiths(userQuestion, undefined, 4);
-    const hadithContext = relevantHadiths.length > 0 
-      ? `\n\nRELEVANT HADITHS FROM API:\n${JSON.stringify(relevantHadiths.map((h: any) => ({
-          collection: h.collection || "bukhari",
-          number: h.hadith_number || h.id,
-          english: (h.hadith_english || h.text || "").substring(0, 300),
-          arabic: (h.hadith_arabic || h.arabic || "").substring(0, 200)
-        })))}`
-      : "";
+    const searchContext = getSunnahComContext(userQuestion);
+    console.log("Search context:", searchContext);
 
     const systemPrompt = `You are an Islamic knowledge assistant. Answer questions about Islam using authentic hadiths from sunnah.com AND relevant Quran verses from quran.com.
 
@@ -285,7 +102,25 @@ QURAN_CITATIONS_START
 QURAN_CITATIONS_END
 
 These authentic sources are from sunnah.com and quran.com. For personal religious rulings, consult qualified scholars.
-${hadithContext}
+
+EXAMPLE HADITHS BY TOPIC:
+CHARITY: Bukhari 1442, Muslim 2588
+PRAYER: Bukhari 528, Muslim 251  
+PATIENCE: Bukhari 5645, Muslim 2999
+PARENTS: Bukhari 5971, Muslim 2548
+TRUTH: Bukhari 6094, Muslim 2607
+
+EXAMPLE QURAN VERSES BY TOPIC:
+CHARITY: 2:267, 57:18, 2:274
+PRAYER: 2:238, 11:114, 29:45
+PATIENCE: 2:153, 3:200, 16:127
+PARENTS: 17:23-24, 31:14, 46:15
+TRUTH: 3:17, 9:119, 33:35
+MERCY: 21:107, 6:54, 7:156
+GUIDANCE: 1:6-7, 2:2, 6:71
+WORSHIP: 51:56, 1:5, 2:21
+FAITH: 49:14-15, 2:285, 3:193
+KNOWLEDGE: 20:114, 39:9, 58:11
 
 CRITICAL RULES FOR HADITH CITATIONS:
 1. Include HADITH_CITATIONS_START/END with valid JSON array
@@ -293,16 +128,20 @@ CRITICAL RULES FOR HADITH CITATIONS:
 3. URL format: https://sunnah.com/bukhari:1442 (lowercase collection name)
 4. Include 1-4 relevant citations
 5. Only include: collection, hadithNumber, url, translation, arabic
-6. The "translation" field MUST contain the EXACT English translation
-7. The "arabic" field MUST contain the EXACT Arabic text
-8. If hadiths are provided above from the API, USE THEM with their exact text
+6. The "translation" field MUST contain the EXACT English translation from the specific sunnah.com URL
+7. The "arabic" field MUST contain the EXACT Arabic text from the specific sunnah.com URL
 
 CRITICAL RULES FOR QURAN CITATIONS:
 1. Include QURAN_CITATIONS_START/END with valid JSON array
 2. JSON must be on ONE line (no line breaks)
 3. URL format: https://quran.com/2/255 (surah/ayah)
 4. Include 1-3 relevant Quran citations when applicable
-5. Must include: surahNumber, ayahNumber, surahName, ayahName (if famous), arabicText, translation, url
+5. Must include: surahNumber, ayahNumber, surahName, ayahName (if famous like Ayat al-Kursi), arabicText, translation, url
+6. The "arabicText" field should contain the Arabic text of the ayah
+7. The "translation" field should contain the English translation (Sahih International or similar)
+8. If a question is specifically about Quran, prioritize Quran citations
+9. If a question is specifically about Hadith, prioritize Hadith citations
+10. For general Islamic questions, include BOTH Quran and Hadith citations
 
 GENERAL RULES:
 1. NEVER use lettered lists (a), (b), (c) or numbered lists in your response
