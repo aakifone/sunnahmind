@@ -51,8 +51,6 @@ interface Message {
 interface BatchData {
   hadiths: { collection: string; number: string; text: string; url?: string }[];
   quranVerses: { surah: number; ayah: number; text: string; translation: string }[];
-}
-
 const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -76,6 +74,7 @@ const Chat = () => {
   const [batchData, setBatchData] = useState<BatchData>({ hadiths: [], quranVerses: [] });
   const [isBatchLoading, setIsBatchLoading] = useState(false);
   const [showBatchProgress, setShowBatchProgress] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
 
   // Current hadith for save/share (from last assistant message)
   const [currentHadith, setCurrentHadith] = useState<{
@@ -103,6 +102,11 @@ const Chat = () => {
     hasQuerySubmitted,
   });
 
+  const handleCancelCommand = useCallback(() => {
+    cancelCommand();
+    setSelectedTopic(null);
+  }, [cancelCommand]);
+
   // Favorites hook
   const { favorites, saveFavorite, removeFavorite, isFavorite } = useFavorites();
 
@@ -128,70 +132,7 @@ const Chat = () => {
     if (lastAssistantMessage?.citations?.[0]) {
       const citation = lastAssistantMessage.citations[0];
       setCurrentHadith({
-        arabic: citation.arabic,
-        english: citation.translation || citation.text || lastAssistantMessage.content.slice(0, 200),
-        reference: `${citation.collection} #${citation.hadithNumber}`,
-      });
-    }
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const createNewConversation = async () => {
-    if (!session?.user) return null;
-
-    const { data, error } = await supabase
-      .from("conversations")
-      .insert({
-        user_id: session.user.id,
-        title: "New Conversation",
-      })
-      .select()
-      .single();
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create conversation",
-        variant: "destructive",
-      });
-      return null;
-    }
-
-    return data.id;
-  };
-
-  const saveMessage = async (conversationId: string, message: Message) => {
-    const { error } = await supabase
-      .from("chat_messages")
-      .insert({
-        conversation_id: conversationId,
-        role: message.role,
-        content: message.content,
-        citations: message.citations || null,
-        quran_citations: message.quranCitations || null,
-      });
-
-    if (error) {
-      console.error("Error saving message:", error);
-    }
-  };
-
-  const loadConversation = async (conversationId: string) => {
-    const { data, error } = await supabase
-      .from("chat_messages")
-      .select("*")
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load conversation",
-        variant: "destructive",
-      });
+@@ -195,299 +201,340 @@ const Chat = () => {
       return;
     }
 
@@ -218,17 +159,27 @@ const Chat = () => {
     ]);
     setBatchData({ hadiths: [], quranVerses: [] });
     cancelCommand();
+    handleCancelCommand();
   };
 
   // Handle command execution
   const handleCommandExecution = useCallback(async (commandId: ActiveCommand, topic?: string) => {
+  const handleCommandExecution = useCallback(async (
+    commandId: ActiveCommand,
+    options?: { query?: string; topic?: string }
+  ) => {
     if (!commandId) return;
+    const trimmedQuery = options?.query?.trim() || "";
+    const resolvedTopic = options?.topic?.trim() || trimmedQuery;
 
     switch (commandId) {
       case 'daily':
         // Execute daily hadith
         setIsLoading(true);
         try {
+          const focusPrompt = trimmedQuery
+            ? ` Focus on: "${trimmedQuery}".`
+            : "";
           const response = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
             {
@@ -236,6 +187,10 @@ const Chat = () => {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 messages: [{ role: "user", content: "Give me a beautiful Hadith of the Day for reflection and spiritual growth. Choose one that is universally beneficial." }],
+                messages: [{
+                  role: "user",
+                  content: `Give me a beautiful Hadith of the Day for reflection and spiritual growth.${focusPrompt} Choose one that is universally beneficial.`,
+                }],
               }),
             }
           );
@@ -252,11 +207,13 @@ const Chat = () => {
         } finally {
           setIsLoading(false);
           cancelCommand();
+          handleCancelCommand();
         }
         break;
 
       case 'topic':
         if (topic) {
+        if (resolvedTopic) {
           setIsLoading(true);
           try {
             const response = await fetch(
@@ -266,6 +223,10 @@ const Chat = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   messages: [{ role: "user", content: `Give me 1-3 authentic hadiths about ${topic}. Include references from sunnah.com.` }],
+                  messages: [{
+                    role: "user",
+                    content: `Give me 1-3 authentic hadiths about ${resolvedTopic}. Include references from sunnah.com.`,
+                  }],
                 }),
               }
             );
@@ -282,7 +243,11 @@ const Chat = () => {
           } finally {
             setIsLoading(false);
             cancelCommand();
+            handleCancelCommand();
           }
+        } else {
+          toast({ title: "Missing topic", description: "Add a topic to search for related hadiths.", variant: "destructive" });
+          handleCancelCommand();
         }
         break;
 
@@ -290,6 +255,9 @@ const Chat = () => {
         if (currentHadith) {
           setIsLoading(true);
           try {
+            const focusPrompt = trimmedQuery
+              ? ` The user asked: "${trimmedQuery}". Address this in your explanation.`
+              : "";
             const response = await fetch(
               `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
               {
@@ -297,6 +265,10 @@ const Chat = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   messages: [{ role: "user", content: `Please provide a simple educational explanation of this hadith: "${currentHadith.english}" (${currentHadith.reference}). Use clear, neutral language without any rulings or opinions. End with: "This explanation is for educational purposes only and is not a fatwa."` }],
+                  messages: [{
+                    role: "user",
+                    content: `Please provide a simple educational explanation of this hadith: "${currentHadith.english}" (${currentHadith.reference}).${focusPrompt} Use clear, neutral language without any rulings or opinions. End with: "This explanation is for educational purposes only and is not a fatwa."`,
+                  }],
                 }),
               }
             );
@@ -313,10 +285,12 @@ const Chat = () => {
           } finally {
             setIsLoading(false);
             cancelCommand();
+            handleCancelCommand();
           }
         } else {
           toast({ title: "No Hadith", description: "Ask a question first to get a hadith to explain", variant: "destructive" });
           cancelCommand();
+          handleCancelCommand();
         }
         break;
 
@@ -324,6 +298,9 @@ const Chat = () => {
         if (currentHadith) {
           setIsLoading(true);
           try {
+            const focusPrompt = trimmedQuery
+              ? ` The user asked: "${trimmedQuery}". Address this in your response.`
+              : "";
             const response = await fetch(
               `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
               {
@@ -331,6 +308,10 @@ const Chat = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   messages: [{ role: "user", content: `What is the historical or situational background of this hadith: "${currentHadith.english}" (${currentHadith.reference})? Explain when or why it was said. If the context is not available, please state that clearly without speculation.` }],
+                  messages: [{
+                    role: "user",
+                    content: `What is the historical or situational background of this hadith: "${currentHadith.english}" (${currentHadith.reference})?${focusPrompt} Explain when or why it was said. If the context is not available, please state that clearly without speculation.`,
+                  }],
                 }),
               }
             );
@@ -347,10 +328,12 @@ const Chat = () => {
           } finally {
             setIsLoading(false);
             cancelCommand();
+            handleCancelCommand();
           }
         } else {
           toast({ title: "No Hadith", description: "Ask a question first to get hadith context", variant: "destructive" });
           cancelCommand();
+          handleCancelCommand();
         }
         break;
 
@@ -358,6 +341,9 @@ const Chat = () => {
         setIsBatchLoading(true);
         setShowBatchProgress(true);
         try {
+          const focusPrompt = trimmedQuery
+            ? ` Focus on: "${trimmedQuery}".`
+            : "";
           const response = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
             {
@@ -365,6 +351,10 @@ const Chat = () => {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 messages: [{ role: "user", content: "Please provide a comprehensive batch of 10-15 diverse authentic hadiths on various important topics like prayer, charity, kindness, patience, and knowledge. For each hadith, include the collection name and hadith number. Also include 10-15 related Quran verses with surah and ayah numbers." }],
+                messages: [{
+                  role: "user",
+                  content: `Please provide a comprehensive batch of 10-15 diverse authentic hadiths and 10-15 related Quran verses.${focusPrompt} For each hadith, include the collection name and hadith number. Include surah and ayah numbers for each Quran verse.`,
+                }],
               }),
             }
           );
@@ -393,10 +383,16 @@ const Chat = () => {
             content: "I've prepared a comprehensive batch of authentic hadiths and Quran verses for you. You can browse them below and feel free to ask me any follow-up questions!",
             timestamp: new Date(),
           }]);
+          toast({
+            title: "Batch ready",
+            description: "Your hadith and Quran batch has been generated successfully.",
+          });
         } catch (error) {
           toast({ title: "Error", description: "Failed to generate batch", variant: "destructive" });
+          setShowBatchProgress(false);
         } finally {
           setIsBatchLoading(false);
+          handleCancelCommand();
         }
         break;
 
@@ -408,9 +404,11 @@ const Chat = () => {
             reference: currentHadith.reference,
           });
           cancelCommand();
+          handleCancelCommand();
         } else {
           toast({ title: "No Hadith", description: "No hadith available to save", variant: "destructive" });
           cancelCommand();
+          handleCancelCommand();
         }
         break;
 
@@ -426,6 +424,7 @@ const Chat = () => {
       handleCommandExecution(activeCommand);
     }
   }, [activeCommand]);
+  }, [currentHadith, saveFavorite, toast, handleCancelCommand]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -466,6 +465,13 @@ const Chat = () => {
     }
     
     setInput("");
+
+    const commandWithQuery = activeCommand && ['daily', 'topic', 'explain', 'context', 'batch'].includes(activeCommand);
+    if (commandWithQuery && activeCommand) {
+      await handleCommandExecution(activeCommand, { query: input, topic: selectedTopic || undefined });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -491,41 +497,7 @@ const Chat = () => {
       }
 
       const data = await response.json();
-      
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.content,
-        citations: data.citations || [],
-        quranCitations: data.quranCitations || [],
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-      
-      if (session?.user && conversationId) {
-        await saveMessage(conversationId, assistantMessage);
-
-        if (messages.length === 1) {
-          await updateConversationTitle(conversationId, input);
-        }
-      }
-    } catch (error) {
-      console.error("Error calling hadith-chat:", error);
-      
-      toast({
-        title: "Error",
-        description: "Failed to get response. Please try again.",
-        variant: "destructive",
-      });
-      
-      const errorMessage: Message = {
-        role: "assistant",
-        content: "I apologize, but I encountered an error processing your request. Please try again.",
-        timestamp: new Date(),
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
+@@ -529,55 +576,60 @@ const Chat = () => {
       setIsLoading(false);
     }
   };
@@ -551,11 +523,17 @@ const Chat = () => {
   };
 
   const handleSelectCommand = (command: SlashCommand) => {
+    if (command.id === 'save') {
+      handleCommandExecution('save');
+      return;
+    }
     selectCommand(command);
   };
 
   const handleTopicSelect = (topic: string) => {
     handleCommandExecution('topic', topic);
+    setSelectedTopic(topic);
+    setInput(topic);
   };
 
   return (
@@ -581,101 +559,7 @@ const Chat = () => {
               content: `Here's a hadith from your favorites:\n\n"${hadith.english}"\n\n— ${hadith.reference}`,
               timestamp: new Date(),
             }]);
-          }}
-        />
-      )}
-
-      <AlertDialog open={showSignUpDialog} onOpenChange={setShowSignUpDialog}>
-        <AlertDialogContent className="paper-texture border-accent/20">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl gold-text">
-              💫 Save Your Conversations
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-base space-y-3 pt-2">
-              <p className="text-foreground/90">
-                Sign up to unlock the full experience:
-              </p>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <span className="text-accent mt-0.5">✓</span>
-                  <span>Save and revisit all your conversations</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-accent mt-0.5">✓</span>
-                  <span>Access your chat history from any device</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-accent mt-0.5">✓</span>
-                  <span>Organize and manage your hadith research</span>
-                </li>
-              </ul>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Continue Without Saving</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => navigate('/auth')}
-              className="bg-accent hover:bg-accent/90 text-accent-foreground"
-            >
-              Sign Up Now
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="border-b border-border/40 bg-card/50 backdrop-blur px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/')}
-              className="gap-2 hover:bg-accent/10"
-            >
-              <Home className="w-4 h-4" />
-              <span>Home</span>
-            </Button>
-            <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
-            {session?.user ? (
-              <AccountDropdown userEmail={session.user.email || ""} />
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/auth')}
-                className="gap-2 border-accent/30 hover:bg-accent/10"
-              >
-                <LogIn className="w-4 h-4" />
-                Sign In
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 paper-texture">
-          <div className="max-w-4xl mx-auto">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <ChatMessage
-                  role={message.role}
-                  content={message.content}
-                  citations={message.citations}
-                  quranCitations={message.quranCitations}
-                  timestamp={message.timestamp}
-                />
-              </div>
-            ))}
-
-            {/* Batch Display */}
-            <BatchDisplay
-              hadiths={batchData.hadiths}
-              quranVerses={batchData.quranVerses}
+@@ -679,91 +731,91 @@ const Chat = () => {
               isLoading={isBatchLoading}
             />
 
@@ -702,6 +586,7 @@ const Chat = () => {
             {/* Active Command Bubble */}
             {activeCommand && (
               <CommandBubble activeCommand={activeCommand} onCancel={cancelCommand}>
+              <CommandBubble activeCommand={activeCommand} onCancel={handleCancelCommand}>
                 {activeCommand === 'topic' && (
                   <TopicSelector onSelectTopic={handleTopicSelect} />
                 )}
@@ -711,6 +596,7 @@ const Chat = () => {
                     english={currentHadith.english}
                     reference={currentHadith.reference}
                     onClose={cancelCommand}
+                    onClose={handleCancelCommand}
                   />
                 )}
                 {activeCommand === 'share' && !currentHadith && (
@@ -744,11 +630,13 @@ const Chat = () => {
                   onKeyDown={handleKeyPress}
                   className="min-h-[60px] max-h-[200px] resize-none pr-12 bg-background border-border/50 focus:border-accent transition-colors"
                   disabled={isLoading}
+                  disabled={isLoading || isBatchLoading}
                 />
               </div>
               <Button
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading || input.startsWith("/")}
+                disabled={!input.trim() || isLoading || isBatchLoading || input.startsWith("/")}
                 size="lg"
                 className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm hover:shadow-gold-glow transition-all duration-300 hover:scale-105"
               >
