@@ -137,8 +137,7 @@ const Header = () => {
                         <DropdownMenuRadioItem
                           key={language.code}
                           value={language.code}
-                          hideIndicator
-                          className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-accent/10 data-[state=checked]:bg-accent/30 data-[state=checked]:text-foreground"
+                          className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-accent/10"
                         >
                           {language.label}
                         </DropdownMenuRadioItem>
@@ -232,14 +231,13 @@ const Header = () => {
                         </DropdownMenuLabel>
                       ) : (
                         filteredLanguages.map((language) => (
-                        <DropdownMenuRadioItem
-                          key={language.code}
-                          value={language.code}
-                          hideIndicator
-                          className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-accent/10 data-[state=checked]:bg-accent/30 data-[state=checked]:text-foreground"
-                        >
-                          {language.label}
-                        </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem
+                            key={language.code}
+                            value={language.code}
+                            className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-accent/10"
+                          >
+                            {language.label}
+                          </DropdownMenuRadioItem>
                         ))
                       )}
                     </DropdownMenuRadioGroup>
