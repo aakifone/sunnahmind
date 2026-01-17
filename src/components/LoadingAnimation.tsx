@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface LoadingAnimationProps {
   onComplete: () => void;
@@ -12,6 +12,7 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
   const [morphProgress, setMorphProgress] = useState(0);
   const [bgProgress, setBgProgress] = useState(0);
   const [moveProgress, setMoveProgress] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleSkip = useCallback(() => {
     sessionStorage.setItem('hasSeenLoadingAnimation', 'true');
@@ -19,7 +20,6 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
   }, [onComplete]);
 
   useEffect(() => {
-    // Phase 1: Form Arabic text letter by letter (left to right)
     let charIndex = 0;
     const formInterval = setInterval(() => {
       if (charIndex <= arabicText.length) {
@@ -98,41 +98,65 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
     if (phase === 'complete') {
       const completeTimer = setTimeout(() => {
         onComplete();
-      }, 200);
+      }, 150);
       return () => clearTimeout(completeTimer);
     }
   }, [phase, onComplete]);
 
   // Easing functions
   const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-  const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const easeInOutQuart = (t: number) => t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
 
   // Background: pure black to white
   const bgValue = Math.round(255 * easeOutCubic(bgProgress));
   const bgColor = `rgb(${bgValue}, ${bgValue}, ${bgValue})`;
 
-  // Position calculations - move to exactly where header logo is (top-left)
-  const easedMoveProgress = easeInOutCubic(moveProgress);
+  // Get current element dimensions and calculate target
+  const easedMoveProgress = easeInOutQuart(moveProgress);
   
-  // Final position: top-left corner matching header
-  // Start: center of screen, End: top-4 left-4 (16px from edges) with proper scale
-  const startScale = 1;
-  const endScale = 0.35;
-  const scale = startScale - (easedMoveProgress * (startScale - endScale));
+  // Header position: 
+  // - container has px-4 (16px padding)
+  // - logo div is 40x40 with gap-3 (12px) before text
+  // - header height is h-16 (64px), text is vertically centered
+  // Target: 16px padding + 40px logo + 12px gap = 68px from left
+  // Vertically: 32px from top (center of 64px header)
   
-  // Calculate translation to top-left (accounting for the element starting at center)
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
   
-  // Target: 16px from left edge, 16px from top (matching header position)
-  const targetX = -(viewportWidth / 2) + 120; // Offset to left side
-  const targetY = -(viewportHeight / 2) + 40; // Offset to top
+  // Current center position
+  const centerX = viewportWidth / 2;
+  const centerY = viewportHeight / 2;
   
-  const translateX = easedMoveProgress * targetX;
-  const translateY = easedMoveProgress * targetY;
+  // Target position (where header text sits)
+  // Header: sticky top-0, h-16 (64px), container mx-auto px-4
+  // Logo button: 40px logo + 12px gap + text
+  // For container mx-auto, we need to account for max container width
+  const containerPadding = 16; // px-4
+  const logoSize = 40;
+  const logoGap = 12; // gap-3
+  
+  // Target X: left padding + logo + gap + half of final text width
+  // Final text at 18px (text-lg) is roughly 120px wide for "Sunnah Mind"
+  const finalTextWidth = 130;
+  const targetX = containerPadding + logoSize + logoGap + (finalTextWidth / 2);
+  
+  // Target Y: center of header (32px from top)
+  const targetY = 32;
+  
+  // Calculate translation from center to target
+  const translateX = (targetX - centerX) * easedMoveProgress;
+  const translateY = (targetY - centerY) * easedMoveProgress;
+  
+  // Scale: from large (1) to header size
+  // Header text is text-lg (18px/1.125rem), current is ~56px (text-5xl md:text-7xl)
+  // Scale factor: 18/56 ≈ 0.32
+  const startScale = 1;
+  const endScale = 0.28;
+  const scale = startScale - (easedMoveProgress * (startScale - endScale));
 
   // Text display logic
-  const easedMorph = easeInOutCubic(morphProgress);
+  const easedMorph = easeInOutQuart(morphProgress);
   const showArabic = phase === 'forming' || phase === 'display' || phase === 'bgTransition' || (phase === 'morphing' && morphProgress < 1);
   const showEnglish = phase === 'morphing' || phase === 'moving' || phase === 'complete';
 
@@ -154,14 +178,16 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
       </button>
 
       <div
-        className="flex items-center gap-3"
+        ref={containerRef}
+        className="flex items-center"
         style={{
           transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
           willChange: 'transform',
+          transformOrigin: 'center center',
         }}
       >
-        {/* Text Container - Single text element with crossfade */}
-        <div className="relative h-[80px] md:h-[100px] flex items-center justify-center">
+        {/* Text Container */}
+        <div className="relative flex items-center justify-center" style={{ height: '80px' }}>
           {/* Arabic text */}
           {showArabic && (
             <h1
