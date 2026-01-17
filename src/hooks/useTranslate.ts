@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { containsArabic, translateText } from "@/lib/translate";
+import { translateText } from "@/lib/translate";
 
 const CACHE_KEY = "translationCache";
 
@@ -46,9 +46,6 @@ export const useTranslate = () => {
   const translate = useCallback(
     (text: string) => {
       if (!text) {
-        return text;
-      }
-      if (containsArabic(text)) {
         return text;
       }
       if (language.translateCode === "en") {
