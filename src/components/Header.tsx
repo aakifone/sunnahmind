@@ -9,178 +9,40 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { switchLanguageWithTransition } from "@/lib/languageSwitch";
 import { BookOpen, Languages, Menu } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const languageOptions = [
-  { code: "en", label: "English" },
-  { code: "ar", label: "العربية" },
-  { code: "ur", label: "اردو" },
-  { code: "tr", label: "Türkçe" },
-  { code: "id", label: "Bahasa Indonesia" },
-  { code: "ms", label: "Bahasa Melayu" },
-  { code: "fr", label: "Français" },
-  { code: "es", label: "Español" },
-  { code: "de", label: "Deutsch" },
-  { code: "it", label: "Italiano" },
-  { code: "pt", label: "Português" },
-  { code: "ru", label: "Русский" },
-  { code: "hi", label: "हिन्दी" },
-  { code: "bn", label: "বাংলা" },
-  { code: "fa", label: "فارسی" },
-  { code: "sw", label: "Kiswahili" },
-  { code: "ha", label: "Hausa" },
-  { code: "so", label: "Soomaali" },
-  { code: "zh", label: "中文" },
-  { code: "ja", label: "日本語" },
-  { code: "ko", label: "한국어" },
-  { code: "nl", label: "Nederlands" },
-  { code: "sv", label: "Svenska" },
-  { code: "no", label: "Norsk" },
-  { code: "da", label: "Dansk" },
-  { code: "pl", label: "Polski" },
-  { code: "ro", label: "Română" },
-  { code: "cs", label: "Čeština" },
-  { code: "el", label: "Ελληνικά" },
-  { code: "uk", label: "Українська" },
-  { code: "sr", label: "Српски" },
   { code: "af", label: "Afrikaans" },
-  { code: "sq", label: "Shqip" },
-  { code: "am", label: "አማርኛ" },
-  { code: "hy", label: "Հայերեն" },
-  { code: "az", label: "Azərbaycanca" },
-  { code: "eu", label: "Euskara" },
-  { code: "be", label: "Беларуская" },
-  { code: "bs", label: "Bosanski" },
-  { code: "bg", label: "Български" },
-  { code: "my", label: "မြန်မာ" },
-  { code: "ca", label: "Català" },
-  { code: "ceb", label: "Cebuano" },
-  { code: "ny", label: "Chichewa" },
-  { code: "co", label: "Corsu" },
-  { code: "hr", label: "Hrvatski" },
-  { code: "eo", label: "Esperanto" },
-  { code: "et", label: "Eesti" },
-  { code: "tl", label: "Filipino" },
-  { code: "fi", label: "Suomi" },
-  { code: "fy", label: "Frysk" },
-  { code: "gl", label: "Galego" },
-  { code: "ka", label: "ქართული" },
-  { code: "gu", label: "ગુજરાતી" },
-  { code: "ht", label: "Kreyòl Ayisyen" },
-  { code: "haw", label: "ʻŌlelo Hawaiʻi" },
-  { code: "he", label: "עברית" },
-  { code: "hu", label: "Magyar" },
-  { code: "is", label: "Íslenska" },
-  { code: "ig", label: "Igbo" },
-  { code: "ga", label: "Gaeilge" },
-  { code: "jw", label: "Jawa" },
-  { code: "kn", label: "ಕನ್ನಡ" },
-  { code: "kk", label: "Қазақша" },
-  { code: "km", label: "ភាសាខ្មែរ" },
-  { code: "ku", label: "Kurdî" },
-  { code: "ky", label: "Кыргызча" },
-  { code: "lo", label: "ລາວ" },
-  { code: "la", label: "Latina" },
-  { code: "lv", label: "Latviešu" },
-  { code: "lt", label: "Lietuvių" },
-  { code: "lb", label: "Lëtzebuergesch" },
-  { code: "mk", label: "Македонски" },
-  { code: "mg", label: "Malagasy" },
-  { code: "ml", label: "മലയാളം" },
-  { code: "mt", label: "Malti" },
-  { code: "mi", label: "Māori" },
-  { code: "mr", label: "मराठी" },
-  { code: "mn", label: "Монгол" },
-  { code: "ne", label: "नेपाली" },
-  { code: "or", label: "ଓଡ଼ିଆ" },
-  { code: "ps", label: "پښتو" },
-  { code: "pa", label: "ਪੰਜਾਬੀ" },
-  { code: "qu", label: "Quechua" },
-  { code: "sm", label: "Gagana Samoa" },
-  { code: "gd", label: "Gàidhlig" },
-  { code: "st", label: "Sesotho" },
-  { code: "sn", label: "Shona" },
-  { code: "sd", label: "سنڌي" },
-  { code: "si", label: "සිංහල" },
-  { code: "sl", label: "Slovenščina" },
-  { code: "su", label: "Sunda" },
-  { code: "tg", label: "Тоҷикӣ" },
-  { code: "ta", label: "தமிழ்" },
-  { code: "te", label: "తెలుగు" },
-  { code: "th", label: "ไทย" },
-  { code: "tk", label: "Türkmen" },
-  { code: "ug", label: "ئۇيغۇرچە" },
-  { code: "uz", label: "Oʻzbek" },
-  { code: "vi", label: "Tiếng Việt" },
-  { code: "cy", label: "Cymraeg" },
-  { code: "xh", label: "isiXhosa" },
-  { code: "yi", label: "ייִדיש" },
-  { code: "yo", label: "Yorùbá" },
-  { code: "zu", label: "isiZulu" },
-  { code: "as", label: "অসমীয়া" },
-  { code: "br", label: "Brezhoneg" },
-  { code: "fo", label: "Føroyskt" },
-  { code: "gv", label: "Gaelg" },
-  { code: "ln", label: "Lingála" },
-  { code: "lu", label: "Tshiluba" },
-  { code: "oc", label: "Occitan" },
-  { code: "om", label: "Oromoo" },
-  { code: "rw", label: "Kinyarwanda" },
-  { code: "sa", label: "संस्कृतम्" },
-  { code: "sc", label: "Sardu" },
-  { code: "se", label: "Davvisámegiella" },
-  { code: "tn", label: "Setswana" },
-  { code: "ti", label: "ትግርኛ" },
-  { code: "to", label: "Faka Tonga" },
-  { code: "ts", label: "Xitsonga" },
-  { code: "tt", label: "Татарча" },
-  { code: "ve", label: "Tshivenḓa" },
-  { code: "wo", label: "Wolof" },
-  { code: "zza", label: "Zazaki" },
-  { code: "ay", label: "Aymara" },
-  { code: "dv", label: "ދިވެހި" },
-  { code: "ee", label: "Eʋegbe" },
-  { code: "ff", label: "Fulfulde" },
-  { code: "gn", label: "Guarani" },
-  { code: "ki", label: "Gĩkũyũ" },
-  { code: "kr", label: "Kanuri" },
-  { code: "lg", label: "Ganda" },
-  { code: "nb", label: "Norsk Bokmål" },
-  { code: "nn", label: "Norsk Nynorsk" },
-  { code: "sk", label: "Slovenčina" },
-  { code: "sah", label: "Саха" },
-  { code: "pap", label: "Papiamentu" },
-  { code: "cv", label: "Чӑвашла" },
-  { code: "ba", label: "Башҡортса" },
-  { code: "nah", label: "Nāhuatl" },
-  { code: "nso", label: "Sepedi" },
-  { code: "ocg", label: "Gɔ́ɔnɔ́" },
-  { code: "rm", label: "Rumantsch" },
-  { code: "rn", label: "Ikirundi" },
-  { code: "ss", label: "SiSwati" },
-  { code: "ttt", label: "Tati" },
-  { code: "ty", label: "Reo Tahiti" },
-  { code: "wbp", label: "Warlpiri" },
-  { code: "ace", label: "Aceh" },
-  { code: "ban", label: "Basa Bali" },
-  { code: "bho", label: "भोजपुरी" },
-  { code: "bua", label: "Буряад" },
-  { code: "ch", label: "Chamoru" },
-  { code: "chy", label: "Tsetsêhestâhese" },
-  { code: "frr", label: "Frasch" },
-  { code: "gag", label: "Gagauz" },
-  { code: "inh", label: "Гӏалгӏай" },
-  { code: "kbd", label: "Адыгэбзэ" },
-  { code: "krc", label: "Къарачай-Малкъар" },
-  { code: "lad", label: "Ladino" },
-  { code: "lkt", label: "Lakȟólʼiyapi" },
-  { code: "mni", label: "ꯃꯤꯇꯩꯂꯣꯟ" },
-  { code: "sco", label: "Scots" },
-  { code: "tet", label: "Tetun" },
-  { code: "vep", label: "Vepsä" },
-  { code: "vro", label: "Võro" },
+  { code: "ar", label: "Arabic" },
+  { code: "bn", label: "Bengali" },
+  { code: "nl", label: "Dutch" },
+  { code: "en", label: "English" },
+  { code: "fil", label: "Filipino (Tagalog)" },
+  { code: "fr", label: "French" },
+  { code: "de", label: "German" },
+  { code: "gu", label: "Gujarati" },
+  { code: "hi", label: "Hindi" },
+  { code: "id", label: "Indonesian" },
+  { code: "it", label: "Italian" },
+  { code: "ja", label: "Japanese" },
+  { code: "kn", label: "Kannada" },
+  { code: "ko", label: "Korean" },
+  { code: "ml", label: "Malayalam" },
+  { code: "zh", label: "Mandarin Chinese" },
+  { code: "fa", label: "Persian (Farsi)" },
+  { code: "pt", label: "Portuguese" },
+  { code: "pa", label: "Punjabi" },
+  { code: "ru", label: "Russian" },
+  { code: "es", label: "Spanish" },
+  { code: "sw", label: "Swahili" },
+  { code: "ta", label: "Tamil" },
+  { code: "th", label: "Thai" },
+  { code: "tr", label: "Turkish" },
+  { code: "ur", label: "Urdu" },
+  { code: "vi", label: "Vietnamese" },
 ];
 
 const Header = () => {
@@ -285,7 +147,7 @@ const Header = () => {
                   <Input
                     value={languageQuery}
                     onChange={(event) => setLanguageQuery(event.target.value)}
-                    placeholder="100+ Languages Available"
+                    placeholder="25+ Languages Available"
                     className="h-9"
                   />
                 </div>
@@ -293,10 +155,12 @@ const Header = () => {
                   <DropdownMenuRadioGroup
                     value={activeLanguage.code}
                     onValueChange={(value) => {
-                      const language = languageMap.get(value);
-                      if (language) {
-                        setActiveLanguage(language);
-                      }
+                      void switchLanguageWithTransition(value, (lang) => {
+                        const nextLanguage = languageMap.get(lang);
+                        if (nextLanguage) {
+                          setActiveLanguage(nextLanguage);
+                        }
+                      });
                     }}
                   >
                     {filteredLanguages.length === 0 ? (
@@ -380,7 +244,7 @@ const Header = () => {
                     <Input
                       value={languageQuery}
                       onChange={(event) => setLanguageQuery(event.target.value)}
-                      placeholder="100+ Languages Available"
+                      placeholder="25+ Languages Available"
                       className="h-9"
                     />
                   </div>
@@ -388,10 +252,12 @@ const Header = () => {
                     <DropdownMenuRadioGroup
                       value={activeLanguage.code}
                       onValueChange={(value) => {
-                        const language = languageMap.get(value);
-                        if (language) {
-                          setActiveLanguage(language);
-                        }
+                        void switchLanguageWithTransition(value, (lang) => {
+                          const nextLanguage = languageMap.get(lang);
+                          if (nextLanguage) {
+                            setActiveLanguage(nextLanguage);
+                          }
+                        });
                       }}
                     >
                       {filteredLanguages.length === 0 ? (
