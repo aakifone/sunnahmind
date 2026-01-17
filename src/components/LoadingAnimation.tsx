@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface LoadingAnimationProps {
   onComplete: () => void;
@@ -8,6 +9,7 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
   const [phase, setPhase] = useState<'forming' | 'display' | 'bgTransition' | 'morphing' | 'moving' | 'complete'>('forming');
   const arabicText = "السُّنَّة العَقْل";
   const englishText = "SunnahMind";
+  const { t } = useTranslate();
   const [visibleArabicChars, setVisibleArabicChars] = useState(0);
   const [morphProgress, setMorphProgress] = useState(0);
   const [bgProgress, setBgProgress] = useState(0);
@@ -174,7 +176,7 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
             : 'bg-black/10 text-black/70 hover:bg-black/20 hover:text-black border border-black/20'
         }`}
       >
-        Skip
+        {t("Skip")}
       </button>
 
       <div

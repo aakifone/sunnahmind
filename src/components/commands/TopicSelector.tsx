@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useTranslate } from "@/hooks/useTranslate";
 
 const TOPICS = [
   { id: "patience", label: "Patience", emoji: "🤲" },
@@ -18,12 +19,13 @@ interface TopicSelectorProps {
 }
 
 export const TopicSelector = ({ onSelectTopic }: TopicSelectorProps) => {
+  const { t } = useTranslate();
   return (
     <div className="flex flex-wrap gap-2">
       {TOPICS.map((topic) => (
         <button
           key={topic.id}
-          onClick={() => onSelectTopic(topic.label)}
+          onClick={() => onSelectTopic(t(topic.label))}
           className={cn(
             "px-4 py-2 rounded-full",
             "bg-white/20 hover:bg-white/30",
@@ -34,7 +36,7 @@ export const TopicSelector = ({ onSelectTopic }: TopicSelectorProps) => {
           )}
         >
           <span>{topic.emoji}</span>
-          <span>{topic.label}</span>
+          <span>{t(topic.label)}</span>
         </button>
       ))}
     </div>

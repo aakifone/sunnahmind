@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Download, Share2, Check } from "lucide-react";
+import { Download, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface ShareImageGeneratorProps {
   arabic?: string;
@@ -21,6 +22,7 @@ export const ShareImageGenerator = ({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+  const { t } = useTranslate();
 
   const generateImage = async () => {
     setIsGenerating(true);
@@ -92,7 +94,11 @@ export const ShareImageGenerator = ({
 
     ctx.fillStyle = "#6b7a8a";
     ctx.font = "16px 'Arial', sans-serif";
-    ctx.fillText("Authentic Islamic Knowledge", canvas.width / 2, canvas.height - 70);
+    ctx.fillText(
+      t("Authentic Islamic Knowledge"),
+      canvas.width / 2,
+      canvas.height - 70,
+    );
 
     // Convert to image
     const url = canvas.toDataURL("image/png");
@@ -132,8 +138,8 @@ export const ShareImageGenerator = ({
     link.click();
 
     toast({
-      title: "Downloaded!",
-      description: "Hadith image saved to your device",
+      title: t("Downloaded!"),
+      description: t("Hadith image saved to your device"),
     });
   };
 
@@ -148,7 +154,7 @@ export const ShareImageGenerator = ({
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: "Hadith from SunnahMind",
+          title: t("Hadith from SunnahMind"),
         });
       } else {
         handleDownload();
@@ -171,12 +177,12 @@ export const ShareImageGenerator = ({
           {isGenerating ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-              Generating...
+              {t("Generating...")}
             </>
           ) : (
             <>
               <Share2 className="w-4 h-4 mr-2" />
-              Generate Share Image
+              {t("Generate Share Image")}
             </>
           )}
         </Button>
@@ -185,7 +191,7 @@ export const ShareImageGenerator = ({
           <div className="rounded-xl overflow-hidden border-2 border-white/30">
             <img
               src={imageUrl}
-              alt="Hadith share image"
+              alt={t("Hadith share image")}
               className="w-full h-auto"
             />
           </div>
@@ -195,14 +201,14 @@ export const ShareImageGenerator = ({
               className="flex-1 bg-white/20 hover:bg-white/30 text-white"
             >
               <Download className="w-4 h-4 mr-2" />
-              Download
+              {t("Download")}
             </Button>
             <Button
               onClick={handleShare}
               className="flex-1 bg-white/20 hover:bg-white/30 text-white"
             >
               <Share2 className="w-4 h-4 mr-2" />
-              Share
+              {t("Share")}
             </Button>
           </div>
         </div>

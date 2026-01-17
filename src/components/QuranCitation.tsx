@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useTranslate } from "@/hooks/useTranslate";
 
 export interface QuranCitationData {
   surahNumber: number;
@@ -55,6 +56,7 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { t } = useTranslate();
   
   // Word-by-word state
   const [showWordByWord, setShowWordByWord] = useState(false);
@@ -75,15 +77,17 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
       });
 
       if (error) throw error;
-      setTafsirContent(data.tafsir || "Tafsir not available for this verse.");
+      setTafsirContent(
+        data.tafsir || t("Tafsir not available for this verse."),
+      );
     } catch (err) {
       console.error("Error fetching tafsir:", err);
       toast({
-        title: "Error",
-        description: "Failed to load tafsir. Please try again.",
+        title: t("Error"),
+        description: t("Failed to load tafsir. Please try again."),
         variant: "destructive",
       });
-      setTafsirContent("Failed to load tafsir. Please try again.");
+      setTafsirContent(t("Failed to load tafsir. Please try again."));
     } finally {
       setIsLoadingContent(false);
     }
@@ -107,8 +111,8 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
     } catch (err) {
       console.error("Error fetching word-by-word:", err);
       toast({
-        title: "Error",
-        description: "Failed to load word-by-word data. Please try again.",
+        title: t("Error"),
+        description: t("Failed to load word-by-word data. Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -161,8 +165,8 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
       audio.onerror = () => {
         setIsPlaying(false);
         toast({
-          title: "Error",
-          description: "Failed to play audio. Please try again.",
+          title: t("Error"),
+          description: t("Failed to play audio. Please try again."),
           variant: "destructive",
         });
       };
@@ -172,8 +176,8 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
     } catch (err) {
       console.error("Error playing audio:", err);
       toast({
-        title: "Error",
-        description: "Failed to load audio. Please try again.",
+        title: t("Error"),
+        description: t("Failed to load audio. Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -196,7 +200,7 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-2">
             <span className="inline-flex items-center px-3 py-1 rounded-lg bg-emerald-500 text-white text-xs font-bold shadow-sm">
-              Quran
+              {t("Quran")}
             </span>
             <span className="text-xs font-bold text-foreground">
               {citation.surahName} ({citation.surahNumber}:{citation.ayahNumber})
@@ -254,7 +258,9 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
             ) : (
               <Languages className="w-3.5 h-3.5" />
             )}
-            {showWordByWord ? "Hide Word-by-Word" : "Word-by-Word Translation"}
+            {showWordByWord
+              ? t("Hide Word-by-Word")
+              : t("Word-by-Word Translation")}
           </Button>
         </div>
 
@@ -282,7 +288,7 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 gap-1 text-xs bg-background/50">
                 <BookOpen className="w-3 h-3" />
-                {viewMode === "translation" ? "Translation" : "Tafsir"}
+                {viewMode === "translation" ? t("Translation") : t("Tafsir")}
                 <ChevronDown className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>
@@ -291,13 +297,13 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
                 onClick={() => handleViewChange("translation")}
                 className={viewMode === "translation" ? "bg-accent" : ""}
               >
-                Translation
+                {t("Translation")}
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => handleViewChange("tafsir")}
                 className={viewMode === "tafsir" ? "bg-accent" : ""}
               >
-                Tafsir (Ibn Kathir)
+                {t("Tafsir (Ibn Kathir)")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -312,7 +318,7 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
           ) : viewMode === "translation" ? (
             <p>{translationContent}</p>
           ) : (
-            <p>{tafsirContent || "Loading tafsir..."}</p>
+            <p>{tafsirContent || t("Loading tafsir...")}</p>
           )}
         </div>
       </div>
@@ -334,7 +340,7 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
           ) : (
             <Play className="w-3 h-3" />
           )}
-          {isPlaying ? "Pause" : "Listen to Ayah"}
+          {isPlaying ? t("Pause") : t("Listen to Ayah")}
         </Button>
 
         {/* Reciter Selector */}

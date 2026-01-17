@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "lucide-react";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   const { preferences, updatePreferences } = usePreferences();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslate();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -37,14 +39,14 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
 
     if (error) {
       toast({
-        title: "Error",
-        description: "Failed to clear chats",
+        title: t("Error"),
+        description: t("Failed to clear chats"),
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Success",
-        description: "All chats cleared successfully",
+        title: t("Success"),
+        description: t("All chats cleared successfully"),
       });
       onOpenChange(false);
     }
@@ -54,37 +56,41 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl gold-text">Settings</DialogTitle>
+          <DialogTitle className="text-xl gold-text">
+            {t("Settings")}
+          </DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="account" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="account">Account</TabsTrigger>
-            <TabsTrigger value="behavior">App Behavior</TabsTrigger>
-            <TabsTrigger value="accessibility">Accessibility</TabsTrigger>
+            <TabsTrigger value="account">{t("Account")}</TabsTrigger>
+            <TabsTrigger value="behavior">{t("App Behavior")}</TabsTrigger>
+            <TabsTrigger value="accessibility">{t("Accessibility")}</TabsTrigger>
           </TabsList>
 
           {/* Account Tab */}
           <TabsContent value="account" className="space-y-4 py-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-base font-semibold">Account Actions</Label>
+                <Label className="text-base font-semibold">
+                  {t("Account Actions")}
+                </Label>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
-                    Manage your profile and account settings
+                    {t("Manage your profile and account settings")}
                   </p>
                   <Button
                     variant="outline"
                     className="w-full"
                     onClick={() => navigate('/auth')}
                   >
-                    Edit Profile
+                    {t("Edit Profile")}
                   </Button>
                   <Button
                     variant="destructive"
                     className="w-full"
                     onClick={handleSignOut}
                   >
-                    Sign Out
+                    {t("Sign Out")}
                   </Button>
                 </div>
               </div>
@@ -96,9 +102,9 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="text-base">Chat History</Label>
+                  <Label className="text-base">{t("Chat History")}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Save your conversations for later
+                    {t("Save your conversations for later")}
                   </p>
                 </div>
                 <Switch
@@ -107,11 +113,13 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-base font-semibold">Clear All Chats</Label>
+                <Label className="text-base font-semibold">
+                  {t("Clear All Chats")}
+                </Label>
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                   <AlertCircle className="w-4 h-4 text-destructive mt-0.5" />
                   <p className="text-sm text-muted-foreground">
-                    This will permanently delete all your conversations
+                    {t("This will permanently delete all your conversations")}
                   </p>
                 </div>
                 <Button
@@ -119,7 +127,7 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                   className="w-full"
                   onClick={handleClearChats}
                 >
-                  Clear All Chats
+                  {t("Clear All Chats")}
                 </Button>
               </div>
             </div>
@@ -129,7 +137,9 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
           <TabsContent value="accessibility" className="space-y-4 py-4">
             <div className="space-y-4">
               <div className="space-y-3">
-                <Label className="text-base font-semibold">Font Size</Label>
+                <Label className="text-base font-semibold">
+                  {t("Font Size")}
+                </Label>
                 <RadioGroup
                   value={preferences.fontSize}
                   onValueChange={(value) => updatePreferences({ fontSize: value as "small" | "medium" | "large" })}
@@ -138,28 +148,28 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="small" id="small" />
                     <Label htmlFor="small" className="cursor-pointer font-normal">
-                      Small
+                      {t("Small")}
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="medium" id="medium" />
                     <Label htmlFor="medium" className="cursor-pointer font-normal">
-                      Medium
+                      {t("Medium")}
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="large" id="large" />
                     <Label htmlFor="large" className="cursor-pointer font-normal">
-                      Large
+                      {t("Large")}
                     </Label>
                   </div>
                 </RadioGroup>
               </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="text-base">Text-to-Speech</Label>
+                  <Label className="text-base">{t("Text-to-Speech")}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Read Hadith aloud
+                    {t("Read Hadith aloud")}
                   </p>
                 </div>
                 <Switch
