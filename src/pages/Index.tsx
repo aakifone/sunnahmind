@@ -1,7 +1,37 @@
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import LoadingAnimation from "@/components/LoadingAnimation";
 
 const Index = () => {
+  const [showLoading, setShowLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Check if this is a fresh load/reload of the main page
+    const hasSeenAnimation = sessionStorage.getItem('hasSeenLoadingAnimation');
+    
+    if (!hasSeenAnimation) {
+      setShowLoading(true);
+    } else {
+      setIsReady(true);
+    }
+  }, []);
+
+  const handleAnimationComplete = () => {
+    sessionStorage.setItem('hasSeenLoadingAnimation', 'true');
+    setShowLoading(false);
+    setIsReady(true);
+  };
+
+  if (showLoading) {
+    return <LoadingAnimation onComplete={handleAnimationComplete} />;
+  }
+
+  if (!isReady) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen">
       <Header />
