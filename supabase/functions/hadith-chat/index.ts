@@ -5,6 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const TRANSLATE_ENDPOINTS = [
+  "https://libretranslate.com/translate",
+  "https://translate.argosopentech.com/translate",
+];
+
 // Function to provide context about searching sunnah.com
 function getSunnahComContext(query: string): string {
   const searchUrl = `https://sunnah.com/search?q=${encodeURIComponent(query)}`;
@@ -12,13 +17,57 @@ function getSunnahComContext(query: string): string {
   return `User is searching for: "${query}". Sunnah.com search URL: ${searchUrl}`;
 }
 
+const translateText = async (text: string, target: string) => {
+  if (!text.trim() || target === "en") {
+    return text;
+  }
+
+  for (const endpoint of TRANSLATE_ENDPOINTS) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          q: text,
+          source: "auto",
+          target,
+          format: "text",
+        }),
+      });
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = await response.json();
+      if (data?.translatedText) {
+        return data.translatedText as string;
+      }
+    } catch (error) {
+      console.warn("Translation request failed:", error);
+    }
+  }
+
+  return text;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, language } = await req.json();
+    const targetLanguageLabel =
+      typeof language?.label === "string" ? language.label : "English";
+    const targetLanguageCode =
+      typeof language?.translateCode === "string"
+        ? language.translateCode
+        : typeof language?.code === "string"
+          ? language.code
+          : "en";
 
     // Validate input
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -55,9 +104,16 @@ serve(async (req) => {
 
     if (isGreeting) {
       console.log("Greeting detected, returning specific hadiths");
+      const greetingEnglish =
+        "May peace, mercy, and blessings of Allah be upon you! Here are authentic hadiths about the virtue of greeting with Salam:\n\n💡 Important: These authentic sources are from sunnah.com and quran.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.";
+      const translatedGreeting =
+        targetLanguageCode === "en"
+          ? greetingEnglish
+          : await translateText(greetingEnglish, targetLanguageCode);
+      const greetingMessage = `وعليكم السلام ورحمة الله وبركاته (Wa alaykumu as-salam wa rahmatullahi wa barakatuh)\n\n${translatedGreeting}`;
       return new Response(
         JSON.stringify({
-          content: "وعليكم السلام ورحمة الله وبركاته (Wa alaykumu as-salam wa rahmatullahi wa barakatuh)\n\nMay peace, mercy, and blessings of Allah be upon you! Here are authentic hadiths about the virtue of greeting with Salam:\n\n💡 Important: These authentic sources are from sunnah.com and quran.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.",
+          content: greetingMessage,
           citations: [
             {
               collection: "Riyad as-Salihin",
@@ -86,6 +142,11 @@ serve(async (req) => {
     console.log("Search context:", searchContext);
 
     const systemPrompt = `You are an Islamic knowledge assistant. Answer questions about Islam using authentic hadiths from sunnah.com AND relevant Quran verses from quran.com.
+
+LANGUAGE INSTRUCTIONS:
+- Respond in ${targetLanguageLabel} for the main answer paragraphs.
+- Do NOT translate any Arabic text.
+- Do NOT translate Quran or Hadith citations into other languages. Keep citation translations in English.
 
 Respond using this format:
 

@@ -9,186 +9,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { switchLanguageWithTransition } from "@/lib/languageSwitch";
+import { languageOptions } from "@/lib/languages";
+import { useTranslate } from "@/hooks/useTranslate";
 import { BookOpen, Languages, Menu } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const languageOptions = [
-  { code: "en", label: "English" },
-  { code: "ar", label: "العربية" },
-  { code: "ur", label: "اردو" },
-  { code: "tr", label: "Türkçe" },
-  { code: "id", label: "Bahasa Indonesia" },
-  { code: "ms", label: "Bahasa Melayu" },
-  { code: "fr", label: "Français" },
-  { code: "es", label: "Español" },
-  { code: "de", label: "Deutsch" },
-  { code: "it", label: "Italiano" },
-  { code: "pt", label: "Português" },
-  { code: "ru", label: "Русский" },
-  { code: "hi", label: "हिन्दी" },
-  { code: "bn", label: "বাংলা" },
-  { code: "fa", label: "فارسی" },
-  { code: "sw", label: "Kiswahili" },
-  { code: "ha", label: "Hausa" },
-  { code: "so", label: "Soomaali" },
-  { code: "zh", label: "中文" },
-  { code: "ja", label: "日本語" },
-  { code: "ko", label: "한국어" },
-  { code: "nl", label: "Nederlands" },
-  { code: "sv", label: "Svenska" },
-  { code: "no", label: "Norsk" },
-  { code: "da", label: "Dansk" },
-  { code: "pl", label: "Polski" },
-  { code: "ro", label: "Română" },
-  { code: "cs", label: "Čeština" },
-  { code: "el", label: "Ελληνικά" },
-  { code: "uk", label: "Українська" },
-  { code: "sr", label: "Српски" },
-  { code: "af", label: "Afrikaans" },
-  { code: "sq", label: "Shqip" },
-  { code: "am", label: "አማርኛ" },
-  { code: "hy", label: "Հայերեն" },
-  { code: "az", label: "Azərbaycanca" },
-  { code: "eu", label: "Euskara" },
-  { code: "be", label: "Беларуская" },
-  { code: "bs", label: "Bosanski" },
-  { code: "bg", label: "Български" },
-  { code: "my", label: "မြန်မာ" },
-  { code: "ca", label: "Català" },
-  { code: "ceb", label: "Cebuano" },
-  { code: "ny", label: "Chichewa" },
-  { code: "co", label: "Corsu" },
-  { code: "hr", label: "Hrvatski" },
-  { code: "eo", label: "Esperanto" },
-  { code: "et", label: "Eesti" },
-  { code: "tl", label: "Filipino" },
-  { code: "fi", label: "Suomi" },
-  { code: "fy", label: "Frysk" },
-  { code: "gl", label: "Galego" },
-  { code: "ka", label: "ქართული" },
-  { code: "gu", label: "ગુજરાતી" },
-  { code: "ht", label: "Kreyòl Ayisyen" },
-  { code: "haw", label: "ʻŌlelo Hawaiʻi" },
-  { code: "he", label: "עברית" },
-  { code: "hu", label: "Magyar" },
-  { code: "is", label: "Íslenska" },
-  { code: "ig", label: "Igbo" },
-  { code: "ga", label: "Gaeilge" },
-  { code: "jw", label: "Jawa" },
-  { code: "kn", label: "ಕನ್ನಡ" },
-  { code: "kk", label: "Қазақша" },
-  { code: "km", label: "ភាសាខ្មែរ" },
-  { code: "ku", label: "Kurdî" },
-  { code: "ky", label: "Кыргызча" },
-  { code: "lo", label: "ລາວ" },
-  { code: "la", label: "Latina" },
-  { code: "lv", label: "Latviešu" },
-  { code: "lt", label: "Lietuvių" },
-  { code: "lb", label: "Lëtzebuergesch" },
-  { code: "mk", label: "Македонски" },
-  { code: "mg", label: "Malagasy" },
-  { code: "ml", label: "മലയാളം" },
-  { code: "mt", label: "Malti" },
-  { code: "mi", label: "Māori" },
-  { code: "mr", label: "मराठी" },
-  { code: "mn", label: "Монгол" },
-  { code: "ne", label: "नेपाली" },
-  { code: "or", label: "ଓଡ଼ିଆ" },
-  { code: "ps", label: "پښتو" },
-  { code: "pa", label: "ਪੰਜਾਬੀ" },
-  { code: "qu", label: "Quechua" },
-  { code: "sm", label: "Gagana Samoa" },
-  { code: "gd", label: "Gàidhlig" },
-  { code: "st", label: "Sesotho" },
-  { code: "sn", label: "Shona" },
-  { code: "sd", label: "سنڌي" },
-  { code: "si", label: "සිංහල" },
-  { code: "sl", label: "Slovenščina" },
-  { code: "su", label: "Sunda" },
-  { code: "tg", label: "Тоҷикӣ" },
-  { code: "ta", label: "தமிழ்" },
-  { code: "te", label: "తెలుగు" },
-  { code: "th", label: "ไทย" },
-  { code: "tk", label: "Türkmen" },
-  { code: "ug", label: "ئۇيغۇرچە" },
-  { code: "uz", label: "Oʻzbek" },
-  { code: "vi", label: "Tiếng Việt" },
-  { code: "cy", label: "Cymraeg" },
-  { code: "xh", label: "isiXhosa" },
-  { code: "yi", label: "ייִדיש" },
-  { code: "yo", label: "Yorùbá" },
-  { code: "zu", label: "isiZulu" },
-  { code: "as", label: "অসমীয়া" },
-  { code: "br", label: "Brezhoneg" },
-  { code: "fo", label: "Føroyskt" },
-  { code: "gv", label: "Gaelg" },
-  { code: "ln", label: "Lingála" },
-  { code: "lu", label: "Tshiluba" },
-  { code: "oc", label: "Occitan" },
-  { code: "om", label: "Oromoo" },
-  { code: "rw", label: "Kinyarwanda" },
-  { code: "sa", label: "संस्कृतम्" },
-  { code: "sc", label: "Sardu" },
-  { code: "se", label: "Davvisámegiella" },
-  { code: "tn", label: "Setswana" },
-  { code: "ti", label: "ትግርኛ" },
-  { code: "to", label: "Faka Tonga" },
-  { code: "ts", label: "Xitsonga" },
-  { code: "tt", label: "Татарча" },
-  { code: "ve", label: "Tshivenḓa" },
-  { code: "wo", label: "Wolof" },
-  { code: "zza", label: "Zazaki" },
-  { code: "ay", label: "Aymara" },
-  { code: "dv", label: "ދިވެހި" },
-  { code: "ee", label: "Eʋegbe" },
-  { code: "ff", label: "Fulfulde" },
-  { code: "gn", label: "Guarani" },
-  { code: "ki", label: "Gĩkũyũ" },
-  { code: "kr", label: "Kanuri" },
-  { code: "lg", label: "Ganda" },
-  { code: "nb", label: "Norsk Bokmål" },
-  { code: "nn", label: "Norsk Nynorsk" },
-  { code: "sk", label: "Slovenčina" },
-  { code: "sah", label: "Саха" },
-  { code: "pap", label: "Papiamentu" },
-  { code: "cv", label: "Чӑвашла" },
-  { code: "ba", label: "Башҡортса" },
-  { code: "nah", label: "Nāhuatl" },
-  { code: "nso", label: "Sepedi" },
-  { code: "ocg", label: "Gɔ́ɔnɔ́" },
-  { code: "rm", label: "Rumantsch" },
-  { code: "rn", label: "Ikirundi" },
-  { code: "ss", label: "SiSwati" },
-  { code: "ttt", label: "Tati" },
-  { code: "ty", label: "Reo Tahiti" },
-  { code: "wbp", label: "Warlpiri" },
-  { code: "ace", label: "Aceh" },
-  { code: "ban", label: "Basa Bali" },
-  { code: "bho", label: "भोजपुरी" },
-  { code: "bua", label: "Буряад" },
-  { code: "ch", label: "Chamoru" },
-  { code: "chy", label: "Tsetsêhestâhese" },
-  { code: "frr", label: "Frasch" },
-  { code: "gag", label: "Gagauz" },
-  { code: "inh", label: "Гӏалгӏай" },
-  { code: "kbd", label: "Адыгэбзэ" },
-  { code: "krc", label: "Къарачай-Малкъар" },
-  { code: "lad", label: "Ladino" },
-  { code: "lkt", label: "Lakȟólʼiyapi" },
-  { code: "mni", label: "ꯃꯤꯇꯩꯂꯣꯟ" },
-  { code: "sco", label: "Scots" },
-  { code: "tet", label: "Tetun" },
-  { code: "vep", label: "Vepsä" },
-  { code: "vro", label: "Võro" },
-];
-
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeLanguage, setActiveLanguage] = useState(languageOptions[0]);
   const [isLanguageSwitching, setIsLanguageSwitching] = useState(false);
   const [languageQuery, setLanguageQuery] = useState("");
   const navigate = useNavigate();
+  const { language, setLanguage } = useLanguage();
+  const { t } = useTranslate();
   const languageMap = useMemo(
     () => new Map(languageOptions.map((language) => [language.code, language])),
     [],
@@ -209,18 +44,10 @@ const Header = () => {
   }, [languageQuery]);
 
   useEffect(() => {
-    const storedLanguage = localStorage.getItem("preferredLanguage");
-    if (storedLanguage && languageMap.has(storedLanguage)) {
-      setActiveLanguage(languageMap.get(storedLanguage) ?? languageOptions[0]);
-    }
-  }, [languageMap]);
-
-  useEffect(() => {
     setIsLanguageSwitching(true);
     const timer = window.setTimeout(() => setIsLanguageSwitching(false), 700);
-    localStorage.setItem("preferredLanguage", activeLanguage.code);
     return () => window.clearTimeout(timer);
-  }, [activeLanguage]);
+  }, [language.code]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -242,13 +69,13 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             <a href="#how-it-works" className="text-sm font-medium hover:text-accent transition-colors">
-              How It Works
+              {t("How It Works")}
             </a>
             <a href="#about" className="text-sm font-medium hover:text-accent transition-colors">
-              About
+              {t("About")}
             </a>
             <a href="#sources" className="text-sm font-medium hover:text-accent transition-colors">
-              Sources
+              {t("Sources")}
             </a>
           </nav>
 
@@ -264,7 +91,7 @@ const Header = () => {
                   aria-label="Change language"
                 >
                   <Languages className="mr-2 h-4 w-4" />
-                  <span className="text-sm font-medium">{activeLanguage.label}</span>
+                  <span className="text-sm font-medium">{language.label}</span>
                   <span
                     className={`ml-2 h-2 w-2 rounded-full bg-accent transition-all duration-300 ${
                       isLanguageSwitching ? "animate-ping" : "opacity-40"
@@ -278,37 +105,40 @@ const Header = () => {
                 className="w-60 border border-border/60 bg-card/95 backdrop-blur"
               >
                 <DropdownMenuLabel className="text-xs uppercase tracking-widest text-muted-foreground">
-                  Language
+                  {t("Language")}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="px-2 pb-2">
                   <Input
                     value={languageQuery}
                     onChange={(event) => setLanguageQuery(event.target.value)}
-                    placeholder="100+ Languages Available"
+                    placeholder={t("25+ Languages Available")}
                     className="h-9"
                   />
                 </div>
                 <div className="max-h-64 overflow-y-scroll px-1">
                   <DropdownMenuRadioGroup
-                    value={activeLanguage.code}
+                    value={language.code}
                     onValueChange={(value) => {
-                      const language = languageMap.get(value);
-                      if (language) {
-                        setActiveLanguage(language);
-                      }
+                      void switchLanguageWithTransition(value, (lang) => {
+                        const nextLanguage = languageMap.get(lang);
+                        if (nextLanguage) {
+                          setLanguage(nextLanguage.code);
+                        }
+                      });
                     }}
                   >
                     {filteredLanguages.length === 0 ? (
                       <DropdownMenuLabel className="px-2 py-2 text-xs text-muted-foreground">
-                        No matches found
+                        {t("No matches found")}
                       </DropdownMenuLabel>
                     ) : (
                       filteredLanguages.map((language) => (
                         <DropdownMenuRadioItem
                           key={language.code}
                           value={language.code}
-                          className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-accent/10"
+                          hideIndicator
+                          className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-accent/10 data-[state=checked]:bg-accent/30 data-[state=checked]:text-foreground"
                         >
                           {language.label}
                         </DropdownMenuRadioItem>
@@ -323,7 +153,7 @@ const Header = () => {
               className="border-accent/30 hover:bg-accent/10 hover:border-accent"
               onClick={() => navigate('/auth')}
             >
-              Sign In
+              {t("Sign In")}
             </Button>
           </div>
 
@@ -341,13 +171,13 @@ const Header = () => {
           <div className="md:hidden py-4 border-t border-border/40">
             <nav className="flex flex-col gap-4">
               <a href="#how-it-works" className="text-sm font-medium hover:text-accent transition-colors">
-                How It Works
+                {t("How It Works")}
               </a>
               <a href="#about" className="text-sm font-medium hover:text-accent transition-colors">
-                About
+                {t("About")}
               </a>
               <a href="#sources" className="text-sm font-medium hover:text-accent transition-colors">
-                Sources
+                {t("Sources")}
               </a>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -359,7 +189,7 @@ const Header = () => {
                     aria-label="Change language"
                   >
                     <Languages className="mr-2 h-4 w-4" />
-                    <span className="text-sm font-medium">{activeLanguage.label}</span>
+                    <span className="text-sm font-medium">{language.label}</span>
                     <span
                       className={`ml-2 h-2 w-2 rounded-full bg-accent transition-all duration-300 ${
                         isLanguageSwitching ? "animate-ping" : "opacity-40"
@@ -373,40 +203,43 @@ const Header = () => {
                   className="w-60 border border-border/60 bg-card/95 backdrop-blur"
                 >
                   <DropdownMenuLabel className="text-xs uppercase tracking-widest text-muted-foreground">
-                    Language
+                    {t("Language")}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <div className="px-2 pb-2">
                     <Input
                       value={languageQuery}
                       onChange={(event) => setLanguageQuery(event.target.value)}
-                      placeholder="100+ Languages Available"
+                      placeholder={t("25+ Languages Available")}
                       className="h-9"
                     />
                   </div>
                   <div className="max-h-64 overflow-y-scroll px-1">
                     <DropdownMenuRadioGroup
-                      value={activeLanguage.code}
+                      value={language.code}
                       onValueChange={(value) => {
-                        const language = languageMap.get(value);
-                        if (language) {
-                          setActiveLanguage(language);
-                        }
+                        void switchLanguageWithTransition(value, (lang) => {
+                          const nextLanguage = languageMap.get(lang);
+                          if (nextLanguage) {
+                            setLanguage(nextLanguage.code);
+                          }
+                        });
                       }}
                     >
                       {filteredLanguages.length === 0 ? (
                         <DropdownMenuLabel className="px-2 py-2 text-xs text-muted-foreground">
-                          No matches found
+                          {t("No matches found")}
                         </DropdownMenuLabel>
                       ) : (
                         filteredLanguages.map((language) => (
-                          <DropdownMenuRadioItem
-                            key={language.code}
-                            value={language.code}
-                            className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-accent/10"
-                          >
-                            {language.label}
-                          </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem
+                          key={language.code}
+                          value={language.code}
+                          hideIndicator
+                          className="cursor-pointer rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-accent/10 data-[state=checked]:bg-accent/30 data-[state=checked]:text-foreground"
+                        >
+                          {language.label}
+                        </DropdownMenuRadioItem>
                         ))
                       )}
                     </DropdownMenuRadioGroup>
@@ -420,7 +253,7 @@ const Header = () => {
                   setMobileMenuOpen(false);
                 }}
               >
-                Sign In
+                {t("Sign In")}
               </Button>
             </nav>
           </div>
