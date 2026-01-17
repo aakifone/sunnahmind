@@ -22,6 +22,33 @@ export const translateText = async (
     return text;
   }
 
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (supabaseUrl) {
+    try {
+      const response = await fetch(`${supabaseUrl}/functions/v1/translate-text`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          q: text,
+          source: "auto",
+          target,
+          format: "text",
+        }),
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as { translatedText?: string };
+        if (data.translatedText) {
+          return data.translatedText;
+        }
+      }
+    } catch (error) {
+      console.warn("Supabase translation request failed:", error);
+    }
+  }
+
   for (const endpoint of TRANSLATE_ENDPOINTS) {
     try {
       const response = await fetch(endpoint, {
