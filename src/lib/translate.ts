@@ -3,6 +3,8 @@ const TRANSLATE_ENDPOINTS = [
   "https://translate.argosopentech.com/translate",
 ];
 
+const MYMEMORY_ENDPOINT = "https://api.mymemory.translated.net/get";
+
 const ARABIC_REGEX =
   /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 
@@ -47,6 +49,25 @@ export const translateText = async (
     } catch (error) {
       console.warn("Supabase translation request failed:", error);
     }
+  }
+
+  try {
+    const response = await fetch(
+      `${MYMEMORY_ENDPOINT}?q=${encodeURIComponent(text)}&langpair=en|${encodeURIComponent(
+        target,
+      )}`,
+    );
+    if (response.ok) {
+      const data = (await response.json()) as {
+        responseData?: { translatedText?: string };
+      };
+      const translatedText = data.responseData?.translatedText;
+      if (translatedText) {
+        return translatedText;
+      }
+    }
+  } catch (error) {
+    console.warn("MyMemory translation request failed:", error);
   }
 
   for (const endpoint of TRANSLATE_ENDPOINTS) {
