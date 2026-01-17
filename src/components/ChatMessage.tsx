@@ -1,6 +1,7 @@
 import { ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuranCitation, { QuranCitationData } from "@/components/QuranCitation";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface Citation {
   collection: string;
@@ -20,6 +21,7 @@ interface ChatMessageProps {
 }
 
 const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: ChatMessageProps) => {
+  const { t } = useTranslate();
 
   if (role === "user") {
     return (
@@ -53,7 +55,8 @@ const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: Ch
             <div className="border-t border-accent/20 pt-5 space-y-4">
               <div className="flex items-center gap-2 text-xs font-bold text-accent uppercase tracking-wider">
                 <BookOpen className="w-5 h-5" />
-                {citations.length} Verified Hadith Citation{citations.length > 1 ? 's' : ''}
+                {citations.length} {t("Verified Hadith Citation")}
+                {citations.length > 1 ? "s" : ""}
               </div>
 
               {citations.map((citation, index) => (
@@ -69,12 +72,12 @@ const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: Ch
                           {citation.collection}
                         </span>
                         <span className="text-xs font-bold text-foreground">
-                          Hadith #{citation.hadithNumber}
+                          {t("Hadith")} #{citation.hadithNumber}
                         </span>
                       </div>
                       {citation.narrator && (
                         <p className="text-xs text-muted-foreground font-medium">
-                          📖 Narrated by {citation.narrator}
+                          {t("📖 Narrated by")} {citation.narrator}
                         </p>
                       )}
                     </div>
@@ -104,7 +107,8 @@ const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: Ch
             <div className="border-t border-emerald-500/20 pt-5 mt-4 space-y-4">
               <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 uppercase tracking-wider">
                 <BookOpen className="w-5 h-5" />
-                {quranCitations.length} Quran Verse{quranCitations.length > 1 ? 's' : ''}
+                {quranCitations.length} {t("Quran Verse")}
+                {quranCitations.length > 1 ? "s" : ""}
               </div>
 
               {quranCitations.map((citation, index) => (
@@ -116,7 +120,13 @@ const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: Ch
           {/* Context/Notes */}
           <div className="mt-5 pt-4 border-t border-accent/20">
             <p className="text-xs text-foreground/70 leading-relaxed bg-accent/5 p-3 rounded-lg">
-              💡 <span className="font-semibold text-accent">Important:</span> These authentic sources are from sunnah.com and quran.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.
+              💡{" "}
+              <span className="font-semibold text-accent">
+                {t("Important:")}
+              </span>{" "}
+              {t(
+                "These authentic sources are from sunnah.com and quran.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.",
+              )}
             </p>
           </div>
         </div>

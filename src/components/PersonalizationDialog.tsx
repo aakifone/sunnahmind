@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { usePreferences, HadithDisplayFormat, ThemePreference } from "@/contexts/PreferencesContext";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface PersonalizationDialogProps {
   open: boolean;
@@ -10,17 +11,22 @@ interface PersonalizationDialogProps {
 
 const PersonalizationDialog = ({ open, onOpenChange }: PersonalizationDialogProps) => {
   const { preferences, updatePreferences } = usePreferences();
+  const { t } = useTranslate();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl gold-text">Personalization</DialogTitle>
+          <DialogTitle className="text-xl gold-text">
+            {t("Personalization")}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-4">
           {/* Hadith Display Format */}
           <div className="space-y-3">
-            <Label className="text-base font-semibold">Hadith Display Format</Label>
+            <Label className="text-base font-semibold">
+              {t("Hadith Display Format")}
+            </Label>
             <RadioGroup
               value={preferences.hadithDisplayFormat}
               onValueChange={(value) => updatePreferences({ hadithDisplayFormat: value as HadithDisplayFormat })}
@@ -29,19 +35,19 @@ const PersonalizationDialog = ({ open, onOpenChange }: PersonalizationDialogProp
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="arabic-only" id="arabic-only" />
                 <Label htmlFor="arabic-only" className="cursor-pointer font-normal">
-                  Arabic only
+                  {t("Arabic only")}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="english-only" id="english-only" />
                 <Label htmlFor="english-only" className="cursor-pointer font-normal">
-                  English only
+                  {t("English only")}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="both" id="both" />
                 <Label htmlFor="both" className="cursor-pointer font-normal">
-                  Arabic + English side-by-side
+                  {t("Arabic + English side-by-side")}
                 </Label>
               </div>
             </RadioGroup>
@@ -49,7 +55,9 @@ const PersonalizationDialog = ({ open, onOpenChange }: PersonalizationDialogProp
 
           {/* Theme Preference */}
           <div className="space-y-3">
-            <Label className="text-base font-semibold">Theme Preference</Label>
+            <Label className="text-base font-semibold">
+              {t("Theme Preference")}
+            </Label>
             <RadioGroup
               value={preferences.themePreference}
               onValueChange={(value) => updatePreferences({ themePreference: value as ThemePreference })}
@@ -58,19 +66,19 @@ const PersonalizationDialog = ({ open, onOpenChange }: PersonalizationDialogProp
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="light" id="light" />
                 <Label htmlFor="light" className="cursor-pointer font-normal">
-                  Light
+                  {t("Light")}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="dark" id="dark" />
                 <Label htmlFor="dark" className="cursor-pointer font-normal">
-                  Dark
+                  {t("Dark")}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="masjid" id="masjid" />
                 <Label htmlFor="masjid" className="cursor-pointer font-normal">
-                  Masjid (green tones, kufic pattern)
+                  {t("Masjid (green tones, kufic pattern)")}
                 </Label>
               </div>
             </RadioGroup>

@@ -10,6 +10,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface Conversation {
   id: string;
@@ -60,6 +61,7 @@ const SwipeableConversationItem = ({
   const itemRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
+  const { t } = useTranslate();
 
   const SWIPE_THRESHOLD = 60;
 
@@ -289,7 +291,7 @@ const SwipeableConversationItem = ({
             </span>
             {isDeleted && daysRemaining !== null && (
               <span className="text-xs text-muted-foreground">
-                Deletes in {daysRemaining} days
+                {t("Deletes in")} {daysRemaining} {t("days")}
               </span>
             )}
           </div>
@@ -310,11 +312,11 @@ const SwipeableConversationItem = ({
             <>
               <ContextMenuItem onClick={() => onRestore(conv.id)}>
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Restore
+                {t("Restore")}
               </ContextMenuItem>
               <ContextMenuItem onClick={() => onArchive(conv.id)}>
                 <Archive className="w-4 h-4 mr-2" />
-                Move to Archive
+                {t("Move to Archive")}
               </ContextMenuItem>
               {onPermanentDelete && (
                 <ContextMenuItem 
@@ -322,7 +324,7 @@ const SwipeableConversationItem = ({
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Permanently
+                  {t("Delete Permanently")}
                 </ContextMenuItem>
               )}
             </>
@@ -330,36 +332,36 @@ const SwipeableConversationItem = ({
             <>
               <ContextMenuItem onClick={() => onRestore(conv.id)}>
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Unarchive
+                {t("Unarchive")}
               </ContextMenuItem>
               <ContextMenuItem onClick={startEditing}>
                 <Edit2 className="w-4 h-4 mr-2" />
-                Rename
+                {t("Rename")}
               </ContextMenuItem>
               <ContextMenuItem 
                 onClick={() => onDelete(conv.id)}
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete
+                {t("Delete")}
               </ContextMenuItem>
             </>
           ) : (
             <>
               <ContextMenuItem onClick={startEditing}>
                 <Edit2 className="w-4 h-4 mr-2" />
-                Rename
+                {t("Rename")}
               </ContextMenuItem>
               <ContextMenuItem onClick={() => onArchive(conv.id)}>
                 <Archive className="w-4 h-4 mr-2" />
-                Archive
+                {t("Archive")}
               </ContextMenuItem>
               <ContextMenuItem 
                 onClick={() => onDelete(conv.id)}
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete
+                {t("Delete")}
               </ContextMenuItem>
             </>
           )}

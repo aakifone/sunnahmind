@@ -9,48 +9,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { switchLanguageWithTransition } from "@/lib/languageSwitch";
+import { languageOptions } from "@/lib/languages";
+import { useTranslate } from "@/hooks/useTranslate";
 import { BookOpen, Languages, Menu } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const languageOptions = [
-  { code: "af", label: "Afrikaans" },
-  { code: "ar", label: "Arabic" },
-  { code: "bn", label: "Bengali" },
-  { code: "nl", label: "Dutch" },
-  { code: "en", label: "English" },
-  { code: "fil", label: "Filipino (Tagalog)" },
-  { code: "fr", label: "French" },
-  { code: "de", label: "German" },
-  { code: "gu", label: "Gujarati" },
-  { code: "hi", label: "Hindi" },
-  { code: "id", label: "Indonesian" },
-  { code: "it", label: "Italian" },
-  { code: "ja", label: "Japanese" },
-  { code: "kn", label: "Kannada" },
-  { code: "ko", label: "Korean" },
-  { code: "ml", label: "Malayalam" },
-  { code: "zh", label: "Mandarin Chinese" },
-  { code: "fa", label: "Persian (Farsi)" },
-  { code: "pt", label: "Portuguese" },
-  { code: "pa", label: "Punjabi" },
-  { code: "ru", label: "Russian" },
-  { code: "es", label: "Spanish" },
-  { code: "sw", label: "Swahili" },
-  { code: "ta", label: "Tamil" },
-  { code: "th", label: "Thai" },
-  { code: "tr", label: "Turkish" },
-  { code: "ur", label: "Urdu" },
-  { code: "vi", label: "Vietnamese" },
-];
-
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeLanguage, setActiveLanguage] = useState(languageOptions[0]);
   const [isLanguageSwitching, setIsLanguageSwitching] = useState(false);
   const [languageQuery, setLanguageQuery] = useState("");
   const navigate = useNavigate();
+  const { language, setLanguage } = useLanguage();
+  const { t } = useTranslate();
   const languageMap = useMemo(
     () => new Map(languageOptions.map((language) => [language.code, language])),
     [],
@@ -71,18 +44,10 @@ const Header = () => {
   }, [languageQuery]);
 
   useEffect(() => {
-    const storedLanguage = localStorage.getItem("preferredLanguage");
-    if (storedLanguage && languageMap.has(storedLanguage)) {
-      setActiveLanguage(languageMap.get(storedLanguage) ?? languageOptions[0]);
-    }
-  }, [languageMap]);
-
-  useEffect(() => {
     setIsLanguageSwitching(true);
     const timer = window.setTimeout(() => setIsLanguageSwitching(false), 700);
-    localStorage.setItem("preferredLanguage", activeLanguage.code);
     return () => window.clearTimeout(timer);
-  }, [activeLanguage]);
+  }, [language.code]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -104,13 +69,13 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             <a href="#how-it-works" className="text-sm font-medium hover:text-accent transition-colors">
-              How It Works
+              {t("How It Works")}
             </a>
             <a href="#about" className="text-sm font-medium hover:text-accent transition-colors">
-              About
+              {t("About")}
             </a>
             <a href="#sources" className="text-sm font-medium hover:text-accent transition-colors">
-              Sources
+              {t("Sources")}
             </a>
           </nav>
 
@@ -126,7 +91,7 @@ const Header = () => {
                   aria-label="Change language"
                 >
                   <Languages className="mr-2 h-4 w-4" />
-                  <span className="text-sm font-medium">{activeLanguage.label}</span>
+                  <span className="text-sm font-medium">{language.label}</span>
                   <span
                     className={`ml-2 h-2 w-2 rounded-full bg-accent transition-all duration-300 ${
                       isLanguageSwitching ? "animate-ping" : "opacity-40"
@@ -140,32 +105,32 @@ const Header = () => {
                 className="w-60 border border-border/60 bg-card/95 backdrop-blur"
               >
                 <DropdownMenuLabel className="text-xs uppercase tracking-widest text-muted-foreground">
-                  Language
+                  {t("Language")}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="px-2 pb-2">
                   <Input
                     value={languageQuery}
                     onChange={(event) => setLanguageQuery(event.target.value)}
-                    placeholder="25+ Languages Available"
+                    placeholder={t("25+ Languages Available")}
                     className="h-9"
                   />
                 </div>
                 <div className="max-h-64 overflow-y-scroll px-1">
                   <DropdownMenuRadioGroup
-                    value={activeLanguage.code}
+                    value={language.code}
                     onValueChange={(value) => {
                       void switchLanguageWithTransition(value, (lang) => {
                         const nextLanguage = languageMap.get(lang);
                         if (nextLanguage) {
-                          setActiveLanguage(nextLanguage);
+                          setLanguage(nextLanguage.code);
                         }
                       });
                     }}
                   >
                     {filteredLanguages.length === 0 ? (
                       <DropdownMenuLabel className="px-2 py-2 text-xs text-muted-foreground">
-                        No matches found
+                        {t("No matches found")}
                       </DropdownMenuLabel>
                     ) : (
                       filteredLanguages.map((language) => (
@@ -187,7 +152,7 @@ const Header = () => {
               className="border-accent/30 hover:bg-accent/10 hover:border-accent"
               onClick={() => navigate('/auth')}
             >
-              Sign In
+              {t("Sign In")}
             </Button>
           </div>
 
@@ -205,13 +170,13 @@ const Header = () => {
           <div className="md:hidden py-4 border-t border-border/40">
             <nav className="flex flex-col gap-4">
               <a href="#how-it-works" className="text-sm font-medium hover:text-accent transition-colors">
-                How It Works
+                {t("How It Works")}
               </a>
               <a href="#about" className="text-sm font-medium hover:text-accent transition-colors">
-                About
+                {t("About")}
               </a>
               <a href="#sources" className="text-sm font-medium hover:text-accent transition-colors">
-                Sources
+                {t("Sources")}
               </a>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -223,7 +188,7 @@ const Header = () => {
                     aria-label="Change language"
                   >
                     <Languages className="mr-2 h-4 w-4" />
-                    <span className="text-sm font-medium">{activeLanguage.label}</span>
+                    <span className="text-sm font-medium">{language.label}</span>
                     <span
                       className={`ml-2 h-2 w-2 rounded-full bg-accent transition-all duration-300 ${
                         isLanguageSwitching ? "animate-ping" : "opacity-40"
@@ -237,32 +202,32 @@ const Header = () => {
                   className="w-60 border border-border/60 bg-card/95 backdrop-blur"
                 >
                   <DropdownMenuLabel className="text-xs uppercase tracking-widest text-muted-foreground">
-                    Language
+                    {t("Language")}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <div className="px-2 pb-2">
                     <Input
                       value={languageQuery}
                       onChange={(event) => setLanguageQuery(event.target.value)}
-                      placeholder="25+ Languages Available"
+                      placeholder={t("25+ Languages Available")}
                       className="h-9"
                     />
                   </div>
                   <div className="max-h-64 overflow-y-scroll px-1">
                     <DropdownMenuRadioGroup
-                      value={activeLanguage.code}
+                      value={language.code}
                       onValueChange={(value) => {
                         void switchLanguageWithTransition(value, (lang) => {
                           const nextLanguage = languageMap.get(lang);
                           if (nextLanguage) {
-                            setActiveLanguage(nextLanguage);
+                            setLanguage(nextLanguage.code);
                           }
                         });
                       }}
                     >
                       {filteredLanguages.length === 0 ? (
                         <DropdownMenuLabel className="px-2 py-2 text-xs text-muted-foreground">
-                          No matches found
+                          {t("No matches found")}
                         </DropdownMenuLabel>
                       ) : (
                         filteredLanguages.map((language) => (
@@ -286,7 +251,7 @@ const Header = () => {
                   setMobileMenuOpen(false);
                 }}
               >
-                Sign In
+                {t("Sign In")}
               </Button>
             </nav>
           </div>

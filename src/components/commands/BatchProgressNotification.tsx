@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { CheckCircle } from "lucide-react";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface BatchProgressNotificationProps {
   isActive: boolean;
@@ -15,6 +16,7 @@ export const BatchProgressNotification = ({
 }: BatchProgressNotificationProps) => {
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const { t } = useTranslate();
 
   useEffect(() => {
     if (!isActive) {
@@ -63,7 +65,9 @@ export const BatchProgressNotification = ({
           <div className="w-5 h-5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
         )}
         <span className="text-sm font-medium">
-          {isComplete ? "Hadith batch has been generated" : "Generating batch..."}
+          {isComplete
+            ? t("Hadith batch has been generated")
+            : t("Generating batch...")}
         </span>
       </div>
 
