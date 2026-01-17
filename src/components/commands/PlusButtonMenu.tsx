@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SLASH_COMMANDS, SlashCommand } from "@/types/commands";
+import { useTranslate } from "@/hooks/useTranslate";
 import {
   Plus,
   Layers,
@@ -35,6 +36,7 @@ export const PlusButtonMenu = ({
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const { t } = useTranslate();
 
   const availableCommands = SLASH_COMMANDS
     .filter((cmd) => hasQuerySubmitted || cmd.availableInEmptyState)
@@ -91,7 +93,7 @@ export const PlusButtonMenu = ({
         >
           <div className="p-2 border-b border-border/50 bg-muted/30">
             <p className="text-xs text-muted-foreground font-medium px-2">
-              Quick Actions
+              {t("Quick Actions")}
             </p>
           </div>
           <div className="p-1 max-h-80 overflow-y-auto">
@@ -117,9 +119,11 @@ export const PlusButtonMenu = ({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm capitalize">{command.name}</p>
+                    <p className="font-medium text-sm capitalize">
+                      {t(command.name)}
+                    </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {command.description}
+                      {t(command.description)}
                     </p>
                   </div>
                 </button>

@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
+import { useTranslate } from "@/hooks/useTranslate";
 import { ArrowRight, Shield, Search, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { t } = useTranslate();
 
   return (
     <section className="relative overflow-hidden paper-texture" style={{ background: 'var(--gradient-background)' }}>
@@ -24,7 +26,12 @@ const Hero = () => {
 
           {/* Description */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            <span className="font-semibold text-foreground">Ask questions about Hadith & Sunnah:</span> AI assistant that answers your questions using Hadiths from sunnah.com. Every answer includes clear references.
+            <span className="font-semibold text-foreground">
+              {t("Ask questions about Hadith & Sunnah:")}
+            </span>{" "}
+            {t(
+              "AI assistant that answers your questions using Hadiths from sunnah.com. Every answer includes clear references.",
+            )}
           </p>
 
           {/* CTA Buttons */}
@@ -38,7 +45,7 @@ const Hero = () => {
               }}
               onClick={() => navigate('/chat')}
             >
-              Start Asking Questions
+              {t("Start Asking Questions")}
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button 
@@ -54,7 +61,7 @@ const Hero = () => {
                 element?.scrollIntoView({ behavior: 'smooth' });
               }}
             >
-              Learn how it works
+              {t("Learn how it works")}
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
@@ -65,9 +72,11 @@ const Hero = () => {
               <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mb-4 mx-auto">
                 <BookOpen className="w-6 h-6 text-accent" />
               </div>
-              <h3 className="font-semibold mb-2">Verified Sources</h3>
+              <h3 className="font-semibold mb-2">{t("Verified Sources")}</h3>
               <p className="text-sm text-muted-foreground">
-                All answers cite specific hadiths from sunnah.com with book, number, and link
+                {t(
+                  "All answers cite specific hadiths from sunnah.com with book, number, and link",
+                )}
               </p>
             </div>
 
@@ -75,9 +84,11 @@ const Hero = () => {
               <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mb-4 mx-auto">
                 <Shield className="w-6 h-6 text-accent" />
               </div>
-              <h3 className="font-semibold mb-2">No Fatwas Given</h3>
+              <h3 className="font-semibold mb-2">{t("No Fatwas Given")}</h3>
               <p className="text-sm text-muted-foreground">
-                We provide hadith references, not religious rulings. Consult qualified scholars
+                {t(
+                  "We provide hadith references, not religious rulings. Consult qualified scholars",
+                )}
               </p>
             </div>
 
@@ -85,9 +96,11 @@ const Hero = () => {
               <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mb-4 mx-auto">
                 <Search className="w-6 h-6 text-accent" />
               </div>
-              <h3 className="font-semibold mb-2">Transparent Research</h3>
+              <h3 className="font-semibold mb-2">{t("Transparent Research")}</h3>
               <p className="text-sm text-muted-foreground">
-                Every citation is auditable. Click any reference to view it on sunnah.com
+                {t(
+                  "Every citation is auditable. Click any reference to view it on sunnah.com",
+                )}
               </p>
             </div>
           </div>

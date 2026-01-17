@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { SLASH_COMMANDS, SlashCommand } from "@/types/commands";
+import { useTranslate } from "@/hooks/useTranslate";
 import {
   Layers,
   History,
@@ -39,6 +40,7 @@ export const SlashCommandMenu = ({
   onClose,
 }: SlashCommandMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslate();
 
   // Filter commands based on state and search
   const availableCommands = SLASH_COMMANDS
@@ -69,7 +71,7 @@ export const SlashCommandMenu = ({
     >
       <div className="p-2 border-b border-border/50">
         <p className="text-xs text-muted-foreground font-medium px-2">
-          Commands
+          {t("Commands")}
         </p>
       </div>
       <div className="p-1">
@@ -101,7 +103,7 @@ export const SlashCommandMenu = ({
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">/{command.name}</p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {command.description}
+                  {t(command.description)}
                 </p>
               </div>
             </button>

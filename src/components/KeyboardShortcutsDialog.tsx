@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Keyboard } from "lucide-react";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface KeyboardShortcutsDialogProps {
   open: boolean;
@@ -7,12 +8,13 @@ interface KeyboardShortcutsDialogProps {
 }
 
 const KeyboardShortcutsDialog = ({ open, onOpenChange }: KeyboardShortcutsDialogProps) => {
+  const { t } = useTranslate();
   const shortcuts = [
-    { keys: "Ctrl + K", description: "Search Hadith" },
-    { keys: "Ctrl + N", description: "New Chat" },
-    { keys: "Ctrl + D", description: "Daily Hadith" },
-    { keys: "Esc", description: "Close current panel" },
-    { keys: "/", description: "Quick Search" },
+    { keys: "Ctrl + K", description: t("Search Hadith") },
+    { keys: "Ctrl + N", description: t("New Chat") },
+    { keys: "Ctrl + D", description: t("Daily Hadith") },
+    { keys: "Esc", description: t("Close current panel") },
+    { keys: "/", description: t("Quick Search") },
   ];
 
   return (
@@ -21,7 +23,7 @@ const KeyboardShortcutsDialog = ({ open, onOpenChange }: KeyboardShortcutsDialog
         <DialogHeader>
           <DialogTitle className="text-xl gold-text flex items-center gap-2">
             <Keyboard className="w-5 h-5" />
-            Keyboard Shortcuts
+            {t("Keyboard Shortcuts")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3 py-4">

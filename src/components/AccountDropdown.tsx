@@ -18,6 +18,7 @@ import PersonalizationDialog from "./PersonalizationDialog";
 import SettingsDialog from "./SettingsDialog";
 import ContactDialog from "./ContactDialog";
 import KeyboardShortcutsDialog from "./KeyboardShortcutsDialog";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface AccountDropdownProps {
   userEmail: string;
@@ -25,6 +26,7 @@ interface AccountDropdownProps {
 
 const AccountDropdown = ({ userEmail }: AccountDropdownProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslate();
   const [showPersonalization, setShowPersonalization] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showContact, setShowContact] = useState(false);
@@ -61,30 +63,30 @@ const AccountDropdown = ({ userEmail }: AccountDropdownProps) => {
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setShowPersonalization(true)} className="cursor-pointer">
             <Palette className="mr-2 h-4 w-4" />
-            <span>Personalization</span>
+            <span>{t("Personalization")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setShowSettings(true)} className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
+            <span>{t("Settings")}</span>
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer">
               <HelpCircle className="mr-2 h-4 w-4" />
-              <span>Help</span>
+              <span>{t("Help")}</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="bg-card">
               <DropdownMenuItem onClick={() => setShowContact(true)} className="cursor-pointer">
-                Contact Us
+                {t("Contact Us")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShowKeyboardShortcuts(true)} className="cursor-pointer">
-                Keyboard Shortcuts
+                {t("Keyboard Shortcuts")}
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
             <LogOut className="mr-2 h-4 w-4" />
-            <span>Sign Out</span>
+            <span>{t("Sign Out")}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
