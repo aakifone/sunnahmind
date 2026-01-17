@@ -149,3 +149,59 @@ All colors MUST be HSL.
       repeating-linear-gradient(-45deg, transparent, transparent 35px, hsl(41 53% 51% / 0.02) 35px, hsl(41 53% 51% / 0.02) 70px);
   }
 }
+
+/* Loading Animation Keyframes */
+@keyframes colorShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes outlinePulse {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(184, 134, 11, 0.3);
+  }
+  50% {
+    text-shadow: 0 0 40px rgba(184, 134, 11, 0.6), 0 0 60px rgba(184, 134, 11, 0.3);
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes reverseSpin {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-outline-pulse {
+  animation: outlinePulse 1.5s ease-in-out infinite;
+}
+
+.animate-color-shift {
+  animation: colorShift 2s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 20s linear infinite;
+}
+
+.animate-reverse-spin {
+  animation: reverseSpin 15s linear infinite;
+}
