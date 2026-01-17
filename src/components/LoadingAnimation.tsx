@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { BookOpen } from "lucide-react";
 
 interface LoadingAnimationProps {
   onComplete: () => void;
@@ -13,7 +12,6 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
   const [morphProgress, setMorphProgress] = useState(0);
   const [bgProgress, setBgProgress] = useState(0);
   const [moveProgress, setMoveProgress] = useState(0);
-  const [showLogo, setShowLogo] = useState(false);
 
   const handleSkip = useCallback(() => {
     sessionStorage.setItem('hasSeenLoadingAnimation', 'true');
@@ -38,10 +36,8 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
 
   useEffect(() => {
     if (phase === 'display') {
-      // Brief pause to display full Arabic text
       const displayTimer = setTimeout(() => {
         setPhase('bgTransition');
-        setShowLogo(true);
       }, 800);
       return () => clearTimeout(displayTimer);
     }
@@ -49,7 +45,6 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
 
   useEffect(() => {
     if (phase === 'bgTransition') {
-      // Smooth background transition from black to white
       let progress = 0;
       const bgInterval = setInterval(() => {
         progress += 0.02;
@@ -67,7 +62,6 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
 
   useEffect(() => {
     if (phase === 'morphing') {
-      // Smooth morph from Arabic to English
       let progress = 0;
       const morphInterval = setInterval(() => {
         progress += 0.015;
@@ -85,10 +79,9 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
 
   useEffect(() => {
     if (phase === 'moving') {
-      // Move to top-left position
       let progress = 0;
       const moveInterval = setInterval(() => {
-        progress += 0.02;
+        progress += 0.025;
         if (progress >= 1) {
           setMoveProgress(1);
           clearInterval(moveInterval);
@@ -105,43 +98,43 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
     if (phase === 'complete') {
       const completeTimer = setTimeout(() => {
         onComplete();
-      }, 300);
+      }, 200);
       return () => clearTimeout(completeTimer);
     }
   }, [phase, onComplete]);
 
-  // Easing function for smooth animations
+  // Easing functions
   const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
   const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-  // Calculate background color based on progress
-  const bgColor = `rgb(${Math.round(255 * easeOutCubic(bgProgress))}, ${Math.round(255 * easeOutCubic(bgProgress))}, ${Math.round(255 * easeOutCubic(bgProgress))})`;
+  // Background: pure black to white
+  const bgValue = Math.round(255 * easeOutCubic(bgProgress));
+  const bgColor = `rgb(${bgValue}, ${bgValue}, ${bgValue})`;
 
-  // Calculate position based on move progress
+  // Position calculations - move to exactly where header logo is (top-left)
   const easedMoveProgress = easeInOutCubic(moveProgress);
-  const scale = 1 - (easedMoveProgress * 0.6); // Scale from 1 to 0.4
-  const translateX = -easedMoveProgress * (window.innerWidth / 2 - 100);
-  const translateY = -easedMoveProgress * (window.innerHeight / 2 - 50);
+  
+  // Final position: top-left corner matching header
+  // Start: center of screen, End: top-4 left-4 (16px from edges) with proper scale
+  const startScale = 1;
+  const endScale = 0.35;
+  const scale = startScale - (easedMoveProgress * (startScale - endScale));
+  
+  // Calculate translation to top-left (accounting for the element starting at center)
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+  
+  // Target: 16px from left edge, 16px from top (matching header position)
+  const targetX = -(viewportWidth / 2) + 120; // Offset to left side
+  const targetY = -(viewportHeight / 2) + 40; // Offset to top
+  
+  const translateX = easedMoveProgress * targetX;
+  const translateY = easedMoveProgress * targetY;
 
-  // Get displayed text based on morph progress
-  const getDisplayedText = () => {
-    if (phase === 'forming' || phase === 'display' || phase === 'bgTransition') {
-      return arabicText.slice(0, visibleArabicChars);
-    }
-    
-    const easedMorph = easeInOutCubic(morphProgress);
-    
-    // Crossfade between Arabic and English
-    return {
-      arabic: arabicText,
-      english: englishText,
-      arabicOpacity: 1 - easedMorph,
-      englishOpacity: easedMorph,
-    };
-  };
-
-  const displayContent = getDisplayedText();
-  const isObjectDisplay = typeof displayContent === 'object';
+  // Text display logic
+  const easedMorph = easeInOutCubic(morphProgress);
+  const showArabic = phase === 'forming' || phase === 'display' || phase === 'bgTransition' || (phase === 'morphing' && morphProgress < 1);
+  const showEnglish = phase === 'morphing' || phase === 'moving' || phase === 'complete';
 
   return (
     <div
@@ -161,105 +154,51 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
       </button>
 
       <div
-        className="flex items-center gap-4"
+        className="flex items-center gap-3"
         style={{
           transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
-          transition: phase === 'moving' ? 'none' : 'transform 0.3s ease-out',
+          willChange: 'transform',
         }}
       >
-        {/* Logo */}
-        <div
-          className="transition-all duration-700 ease-out"
-          style={{
-            opacity: showLogo ? 1 : 0,
-            transform: showLogo ? 'scale(1)' : 'scale(0.5)',
-          }}
-        >
-          <div 
-            className="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg"
-            style={{
-              background: 'linear-gradient(135deg, #D4A574 0%, #8B6914 100%)',
-            }}
-          >
-            <BookOpen className="w-8 h-8 text-white" />
-          </div>
-        </div>
-
-        {/* Text Container */}
-        <div className="relative">
-          {isObjectDisplay ? (
-            <>
-              {/* Arabic text (fading out) */}
-              <h1
-                className="text-5xl md:text-7xl font-bold whitespace-nowrap absolute inset-0"
-                style={{
-                  fontFamily: "'Amiri', 'Noto Sans Arabic', serif",
-                  background: 'linear-gradient(135deg, #D4A574 0%, #8B6914 50%, #D4A574 100%)',
-                  WebkitBackgroundClip: 'text',
-                  backgroundClip: 'text',
-                  color: 'transparent',
-                  opacity: displayContent.arabicOpacity,
-                  transition: 'opacity 0.05s linear',
-                }}
-              >
-                {displayContent.arabic}
-              </h1>
-              {/* English text (fading in) */}
-              <h1
-                className="text-5xl md:text-7xl font-bold whitespace-nowrap"
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  background: 'linear-gradient(135deg, #D4A574 0%, #8B6914 50%, #D4A574 100%)',
-                  WebkitBackgroundClip: 'text',
-                  backgroundClip: 'text',
-                  color: 'transparent',
-                  opacity: displayContent.englishOpacity,
-                  transition: 'opacity 0.05s linear',
-                }}
-              >
-                {displayContent.english}
-              </h1>
-            </>
-          ) : (
+        {/* Text Container - Single text element with crossfade */}
+        <div className="relative h-[80px] md:h-[100px] flex items-center justify-center">
+          {/* Arabic text */}
+          {showArabic && (
             <h1
-              className="text-5xl md:text-7xl font-bold whitespace-nowrap"
+              className="text-5xl md:text-7xl font-bold whitespace-nowrap absolute"
               style={{
                 fontFamily: "'Amiri', 'Noto Sans Arabic', serif",
                 background: 'linear-gradient(135deg, #D4A574 0%, #8B6914 50%, #D4A574 100%)',
                 WebkitBackgroundClip: 'text',
                 backgroundClip: 'text',
                 color: 'transparent',
+                opacity: phase === 'morphing' ? 1 - easedMorph : 1,
                 direction: 'rtl',
+                lineHeight: 1.4,
               }}
             >
-              {displayContent}
+              {phase === 'forming' ? arabicText.slice(0, visibleArabicChars) : arabicText}
+            </h1>
+          )}
+          
+          {/* English text */}
+          {showEnglish && (
+            <h1
+              className="text-5xl md:text-7xl font-bold whitespace-nowrap absolute"
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                background: 'linear-gradient(135deg, #D4A574 0%, #8B6914 50%, #D4A574 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+                opacity: phase === 'morphing' ? easedMorph : 1,
+                lineHeight: 1.4,
+              }}
+            >
+              {englishText}
             </h1>
           )}
         </div>
-      </div>
-
-      {/* Decorative geometric patterns */}
-      <div 
-        className="absolute inset-0 pointer-events-none overflow-hidden"
-        style={{ opacity: 0.15 * (1 - bgProgress) }}
-      >
-        <div className="absolute top-10 left-10 w-32 h-32 border border-amber-500/50 rotate-45 animate-spin-slow" />
-        <div className="absolute bottom-10 right-10 w-24 h-24 border border-amber-500/50 rotate-12 animate-reverse-spin" />
-        <div className="absolute top-1/4 right-20 w-16 h-16 border border-amber-500/40 animate-pulse" />
-        <div className="absolute bottom-1/4 left-20 w-20 h-20 border border-amber-500/40 rotate-45 animate-pulse" />
-      </div>
-
-      {/* Radial glow effect */}
-      <div 
-        className="absolute inset-0 pointer-events-none"
-        style={{ opacity: 1 - bgProgress }}
-      >
-        <div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
-          style={{
-            background: 'radial-gradient(circle, rgba(212, 165, 116, 0.2) 0%, transparent 70%)',
-          }}
-        />
       </div>
     </div>
   );
