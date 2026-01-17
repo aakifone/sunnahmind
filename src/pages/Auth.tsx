@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslate } from "@/hooks/useTranslate";
 import { BookOpen, Home } from "lucide-react";
 import { Session } from "@supabase/supabase-js";
 import { Separator } from "@/components/ui/separator";
@@ -17,6 +18,7 @@ const Auth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslate();
 
   useEffect(() => {
     // Check for existing session
@@ -52,8 +54,8 @@ const Auth = () => {
         if (error) throw error;
         
         toast({
-          title: "Welcome back!",
-          description: "You have successfully signed in.",
+          title: t("Welcome back!"),
+          description: t("You have successfully signed in."),
         });
       } else {
         const { error } = await supabase.auth.signUp({
@@ -67,15 +69,15 @@ const Auth = () => {
         if (error) throw error;
         
         toast({
-          title: "Account created!",
-          description: "You can now sign in with your credentials.",
+          title: t("Account created!"),
+          description: t("You can now sign in with your credentials."),
         });
         setIsLogin(true);
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "An error occurred",
+        title: t("Error"),
+        description: t(error.message || "An error occurred"),
         variant: "destructive",
       });
     } finally {
@@ -95,8 +97,8 @@ const Auth = () => {
       if (error) throw error;
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "An error occurred",
+        title: t("Error"),
+        description: t(error.message || "An error occurred"),
         variant: "destructive",
       });
     }
@@ -119,7 +121,7 @@ const Auth = () => {
             <h1 className="text-4xl font-bold gold-text">Sunnah Mind</h1>
           </div>
           <p className="text-muted-foreground">
-            Access authentic hadith guidance
+            {t("Access authentic hadith guidance")}
           </p>
         </div>
 
@@ -130,24 +132,24 @@ const Auth = () => {
               className="flex-1"
               onClick={() => setIsLogin(true)}
             >
-              Sign In
+              {t("Sign In")}
             </Button>
             <Button
               variant={!isLogin ? "default" : "outline"}
               className="flex-1"
               onClick={() => setIsLogin(false)}
             >
-              Sign Up
+              {t("Sign Up")}
             </Button>
           </div>
 
           <form onSubmit={handleEmailAuth} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("Email")}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder={t("your@email.com")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -156,11 +158,11 @@ const Auth = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("Password")}</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder={t("••••••••")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -174,14 +176,18 @@ const Auth = () => {
               className="w-full bg-accent hover:bg-accent/90 transition-all duration-300 hover:scale-105"
               disabled={isLoading}
             >
-              {isLoading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
+              {isLoading
+                ? t("Loading...")
+                : isLogin
+                  ? t("Sign In")
+                  : t("Create Account")}
             </Button>
           </form>
 
           <div className="relative my-4">
             <Separator />
             <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-              OR
+              {t("OR")}
             </span>
           </div>
 
@@ -209,7 +215,7 @@ const Auth = () => {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            {t("Continue with Google")}
           </Button>
         </div>
       </div>

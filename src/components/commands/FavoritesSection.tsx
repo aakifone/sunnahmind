@@ -2,8 +2,9 @@ import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Heart, Trash2, ExternalLink, BookOpen } from "lucide-react";
+import { Heart, Trash2, BookOpen } from "lucide-react";
 import { SavedHadith } from "@/types/commands";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface FavoritesSectionProps {
   favorites: SavedHadith[];
@@ -20,6 +21,7 @@ export const FavoritesSection = ({
   isExpanded,
   onToggle,
 }: FavoritesSectionProps) => {
+  const { t } = useTranslate();
   return (
     <div className="border-t border-border">
       <Button
@@ -28,7 +30,7 @@ export const FavoritesSection = ({
         onClick={onToggle}
       >
         <Heart className={cn("w-4 h-4", favorites.length > 0 && "fill-accent text-accent")} />
-        <span>Favorites</span>
+        <span>{t("Favorites")}</span>
         {favorites.length > 0 && (
           <span className="ml-auto text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
             {favorites.length}
@@ -41,8 +43,8 @@ export const FavoritesSection = ({
           {favorites.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
               <Heart className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p>No saved hadiths yet</p>
-              <p className="text-xs mt-1">Use /save to add favorites</p>
+              <p>{t("No saved hadiths yet")}</p>
+              <p className="text-xs mt-1">{t("Use /save to add favorites")}</p>
             </div>
           ) : (
             <ScrollArea className="h-64">

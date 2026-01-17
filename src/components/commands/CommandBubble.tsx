@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ActiveCommand } from "@/types/commands";
+import { useTranslate } from "@/hooks/useTranslate";
 import {
   Layers,
   History,
@@ -45,7 +46,8 @@ export const CommandBubble = ({
   if (!activeCommand) return null;
 
   const IconComponent = iconMap[activeCommand];
-  const label = commandLabels[activeCommand] || activeCommand;
+  const { t } = useTranslate();
+  const label = t(commandLabels[activeCommand] || activeCommand);
 
   return (
     <div
@@ -82,7 +84,7 @@ export const CommandBubble = ({
           </div>
           <div>
             <p className="font-semibold text-white text-sm">{label}</p>
-            <p className="text-xs text-white/70">Active command</p>
+            <p className="text-xs text-white/70">{t("Active command")}</p>
           </div>
         </div>
         <button

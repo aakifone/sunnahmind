@@ -7,6 +7,8 @@ import ChatMessage from "@/components/ChatMessage";
 import ConversationSidebar from "@/components/ConversationSidebar";
 import AccountDropdown from "@/components/AccountDropdown";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslate } from "@/hooks/useTranslate";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import {
@@ -40,15 +42,20 @@ interface Message {
 const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const { t } = useTranslate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const greetingMessage = `السلام عليكم! ${t(
+    "I'm Sunnah Mind. Ask me any question about Islamic teachings, and I'll provide authentic hadiths and Quran verses with direct citations.",
+  )}`;
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "السلام عليكم! I'm Sunnah Mind. Ask me any question about Islamic teachings, and I'll provide authentic hadiths and Quran verses with direct citations.",
+      content: greetingMessage,
       timestamp: new Date(),
-    }
+    },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +82,23 @@ const Chat = () => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    setMessages((prev) => {
+      if (
+        prev.length === 1 &&
+        prev[0].role === "assistant" &&
+        prev[0].content.startsWith("السلام عليكم!")
+      ) {
+        return [
+          {
+            ...prev[0],
+            content: greetingMessage,
+          },
+        ];
+      }
+      return prev;
+    });
+  }, [greetingMessage]);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -86,15 +110,15 @@ const Chat = () => {
       .from("conversations")
       .insert({
         user_id: session.user.id,
-        title: "New Conversation",
+        title: t("New Conversation"),
       })
       .select()
       .single();
 
     if (error) {
       toast({
-        title: "Error",
-        description: "Failed to create conversation",
+        title: t("Error"),
+        description: t("Failed to create conversation"),
         variant: "destructive",
       });
       return null;
@@ -128,8 +152,8 @@ const Chat = () => {
 
     if (error) {
       toast({
-        title: "Error",
-        description: "Failed to load conversation",
+        title: t("Error"),
+        description: t("Failed to load conversation"),
         variant: "destructive",
       });
       return;
@@ -152,7 +176,7 @@ const Chat = () => {
     setMessages([
       {
         role: "assistant",
-        content: "السلام عليكم! I'm Sunnah Mind. Ask me any question about Islamic teachings, and I'll provide authentic hadiths and Quran verses with direct citations.",
+        content: greetingMessage,
         timestamp: new Date(),
       }
     ]);
@@ -164,8 +188,8 @@ const Chat = () => {
     const validation = messageSchema.safeParse({ content: input });
     if (!validation.success) {
       toast({
-        title: "Invalid input",
-        description: validation.error.errors[0].message,
+        title: t("Invalid input"),
+        description: t(validation.error.errors[0].message),
         variant: "destructive"
       });
       return;
@@ -213,6 +237,11 @@ const Chat = () => {
               })),
               { role: "user", content: input }
             ],
+            language: {
+              code: language.code,
+              label: language.label,
+              translateCode: language.translateCode,
+            },
           }),
         }
       );
@@ -244,14 +273,16 @@ const Chat = () => {
       console.error("Error calling hadith-chat:", error);
       
       toast({
-        title: "Error",
-        description: "Failed to get response. Please try again.",
+        title: t("Error"),
+        description: t("Failed to get response. Please try again."),
         variant: "destructive",
       });
       
       const errorMessage: Message = {
         role: "assistant",
-        content: "I apologize, but I encountered an error processing your request. Please try again.",
+        content: t(
+          "I apologize, but I encountered an error processing your request. Please try again.",
+        ),
         timestamp: new Date(),
       };
       
@@ -292,7 +323,9 @@ const Chat = () => {
           onSelectFavorite={(hadith) => {
             setMessages(prev => [...prev, {
               role: "assistant",
-              content: `Here's a hadith from your favorites:\n\n"${hadith.english}"\n\n— ${hadith.reference}`,
+              content: `${t(
+                "Here's a hadith from your favorites:",
+              )}\n\n"${hadith.english}"\n\n— ${hadith.reference}`,
               timestamp: new Date(),
             }]);
           }}
@@ -303,35 +336,37 @@ const Chat = () => {
         <AlertDialogContent className="paper-texture border-accent/20">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl gold-text">
-              💫 Save Your Conversations
+              {t("💫 Save Your Conversations")}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base space-y-3 pt-2">
               <p className="text-foreground/90">
-                Sign up to unlock the full experience:
+                {t("Sign up to unlock the full experience:")}
               </p>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-accent mt-0.5">✓</span>
-                  <span>Save and revisit all your conversations</span>
+                  <span>{t("Save and revisit all your conversations")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-accent mt-0.5">✓</span>
-                  <span>Access your chat history from any device</span>
+                  <span>{t("Access your chat history from any device")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-accent mt-0.5">✓</span>
-                  <span>Organize and manage your hadith research</span>
+                  <span>{t("Organize and manage your hadith research")}</span>
                 </li>
               </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continue Without Saving</AlertDialogCancel>
+            <AlertDialogCancel>
+              {t("Continue Without Saving")}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => navigate('/auth')}
               className="bg-accent hover:bg-accent/90 text-accent-foreground"
             >
-              Sign Up Now
+              {t("Sign Up Now")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -348,7 +383,7 @@ const Chat = () => {
               className="gap-2 hover:bg-accent/10"
             >
               <Home className="w-4 h-4" />
-              <span>Home</span>
+              <span>{t("Home")}</span>
             </Button>
             <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
             {session?.user ? (
@@ -361,7 +396,7 @@ const Chat = () => {
                 className="gap-2 border-accent/30 hover:bg-accent/10"
               >
                 <LogIn className="w-4 h-4" />
-                Sign In
+                {t("Sign In")}
               </Button>
             )}
           </div>
@@ -392,8 +427,12 @@ const Chat = () => {
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <Sparkles className="w-5 h-5 animate-spin text-accent" />
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">Searching authentic sources...</span>
-                      <span className="text-xs opacity-70">Finding hadiths and Quran verses</span>
+                      <span className="text-sm font-medium">
+                        {t("Searching authentic sources...")}
+                      </span>
+                      <span className="text-xs opacity-70">
+                        {t("Finding hadiths and Quran verses")}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -409,7 +448,7 @@ const Chat = () => {
             <div className="flex gap-2 items-end">
               <div className="flex-1 relative">
                 <Textarea
-                  placeholder="Ask about any topic..."
+                  placeholder={t("Ask about any topic...")}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyPress}
@@ -428,7 +467,9 @@ const Chat = () => {
             </div>
 
             <p className="text-xs text-muted-foreground mt-2 text-center">
-              Authentic sources from sunnah.com & quran.com • Not for issuing fatwas
+              {t(
+                "Authentic sources from sunnah.com & quran.com • Not for issuing fatwas",
+              )}
             </p>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface ContactDialogProps {
   open: boolean;
@@ -14,6 +15,7 @@ interface ContactDialogProps {
 
 const ContactDialog = ({ open, onOpenChange }: ContactDialogProps) => {
   const { toast } = useToast();
+  const { t } = useTranslate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -23,8 +25,8 @@ const ContactDialog = ({ open, onOpenChange }: ContactDialogProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     toast({
-      title: "Message sent",
-      description: "Thank you for contacting us. We'll get back to you soon!",
+      title: t("Message sent"),
+      description: t("Thank you for contacting us. We'll get back to you soon!"),
     });
     onOpenChange(false);
     // Reset form
@@ -37,13 +39,15 @@ const ContactDialog = ({ open, onOpenChange }: ContactDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl gold-text">Contact Us</DialogTitle>
+          <DialogTitle className="text-xl gold-text">
+            {t("Contact Us")}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">{t("Name")}</Label>
             <Input
               id="name"
               value={name}
@@ -52,7 +56,7 @@ const ContactDialog = ({ open, onOpenChange }: ContactDialogProps) => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("Email")}</Label>
             <Input
               id="email"
               type="email"
@@ -62,20 +66,20 @@ const ContactDialog = ({ open, onOpenChange }: ContactDialogProps) => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="purpose">Purpose</Label>
+            <Label htmlFor="purpose">{t("Purpose")}</Label>
             <Select value={purpose} onValueChange={setPurpose} required>
               <SelectTrigger id="purpose">
-                <SelectValue placeholder="Select a purpose" />
+                <SelectValue placeholder={t("Select a purpose")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="bug">Bug Report</SelectItem>
-                <SelectItem value="suggestion">Suggestion</SelectItem>
-                <SelectItem value="feedback">Feedback</SelectItem>
+                <SelectItem value="bug">{t("Bug Report")}</SelectItem>
+                <SelectItem value="suggestion">{t("Suggestion")}</SelectItem>
+                <SelectItem value="feedback">{t("Feedback")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="message">Message</Label>
+            <Label htmlFor="message">{t("Message")}</Label>
             <Textarea
               id="message"
               value={message}
@@ -85,16 +89,18 @@ const ContactDialog = ({ open, onOpenChange }: ContactDialogProps) => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="hadithRequest">Request a Hadith (Optional)</Label>
+            <Label htmlFor="hadithRequest">
+              {t("Request a Hadith (Optional)")}
+            </Label>
             <Input
               id="hadithRequest"
               value={hadithRequest}
               onChange={(e) => setHadithRequest(e.target.value)}
-              placeholder="e.g., Hadith about patience"
+              placeholder={t("e.g., Hadith about patience")}
             />
           </div>
           <Button type="submit" className="w-full bg-accent hover:bg-accent/90">
-            Send Message
+            {t("Send Message")}
           </Button>
         </form>
       </DialogContent>

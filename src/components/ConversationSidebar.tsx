@@ -46,6 +46,7 @@ import { CSS } from "@dnd-kit/utilities";
 import SwipeableConversationItem from "./SwipeableConversationItem";
 import MushafIcon from "./icons/MushafIcon";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTranslate } from "@/hooks/useTranslate";
 
 interface Conversation {
   id: string;
@@ -156,6 +157,7 @@ const ConversationSidebar = ({
   const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { t } = useTranslate();
   const isMobile = useIsMobile();
 
   const sensors = useSensors(
@@ -203,8 +205,8 @@ const ConversationSidebar = ({
 
     if (activeError || archivedError || deletedError) {
       toast({
-        title: "Error",
-        description: "Failed to load conversations",
+        title: t("Error"),
+        description: t("Failed to load conversations"),
         variant: "destructive",
       });
       return;
@@ -223,8 +225,8 @@ const ConversationSidebar = ({
 
     if (error) {
       toast({
-        title: "Error",
-        description: "Failed to rename conversation",
+        title: t("Error"),
+        description: t("Failed to rename conversation"),
         variant: "destructive",
       });
       return;
@@ -241,16 +243,16 @@ const ConversationSidebar = ({
 
     if (error) {
       toast({
-        title: "Error",
-        description: "Failed to archive conversation",
+        title: t("Error"),
+        description: t("Failed to archive conversation"),
         variant: "destructive",
       });
       return;
     }
 
     toast({
-      title: "Archived",
-      description: "Conversation moved to archive",
+      title: t("Archived"),
+      description: t("Conversation moved to archive"),
     });
 
     loadConversations();
@@ -267,16 +269,16 @@ const ConversationSidebar = ({
 
     if (error) {
       toast({
-        title: "Error",
-        description: "Failed to delete conversation",
+        title: t("Error"),
+        description: t("Failed to delete conversation"),
         variant: "destructive",
       });
       return;
     }
 
     toast({
-      title: "Deleted",
-      description: "Conversation will be permanently deleted in 15 days",
+      title: t("Deleted"),
+      description: t("Conversation will be permanently deleted in 15 days"),
     });
 
     loadConversations();
@@ -293,16 +295,16 @@ const ConversationSidebar = ({
 
     if (error) {
       toast({
-        title: "Error",
-        description: "Failed to restore conversation",
+        title: t("Error"),
+        description: t("Failed to restore conversation"),
         variant: "destructive",
       });
       return;
     }
 
     toast({
-      title: "Restored",
-      description: "Conversation restored to active",
+      title: t("Restored"),
+      description: t("Conversation restored to active"),
     });
 
     loadConversations();
@@ -316,16 +318,16 @@ const ConversationSidebar = ({
 
     if (error) {
       toast({
-        title: "Error",
-        description: "Failed to permanently delete conversation",
+        title: t("Error"),
+        description: t("Failed to permanently delete conversation"),
         variant: "destructive",
       });
       return;
     }
 
     toast({
-      title: "Permanently Deleted",
-      description: "Conversation has been permanently removed",
+      title: t("Permanently Deleted"),
+      description: t("Conversation has been permanently removed"),
     });
 
     loadConversations();
@@ -402,7 +404,7 @@ const ConversationSidebar = ({
     <div className="w-72 bg-card border-r border-border flex flex-col">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-lg">Conversations</h2>
+          <h2 className="font-semibold text-lg">{t("Conversations")}</h2>
           <Button
             size="sm"
             variant="ghost"
@@ -417,7 +419,7 @@ const ConversationSidebar = ({
           onClick={onNewConversation}
         >
           <Plus className="w-4 h-4" />
-          New Conversation
+          {t("New Conversation")}
         </Button>
 
         {/* Favorites Section - Right under New Conversation */}
@@ -433,7 +435,7 @@ const ConversationSidebar = ({
         <div className="mt-2 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search conversations..."
+            placeholder={t("Search conversations...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -443,9 +445,9 @@ const ConversationSidebar = ({
         {/* Instructions hint */}
         <div className="mt-3 text-xs text-muted-foreground">
           {isMobile ? (
-            <p>← Swipe left for actions</p>
+            <p>{t("← Swipe left for actions")}</p>
           ) : (
-            <p>Right-click for options • Drag to reorder</p>
+            <p>{t("Right-click for options • Drag to reorder")}</p>
           )}
         </div>
       </div>
@@ -495,7 +497,7 @@ const ConversationSidebar = ({
           onClick={() => setShowArchive(!showArchive)}
         >
           <Archive className="w-4 h-4" />
-          Archived ({archivedConversations.length})
+          {t("Archived")} ({archivedConversations.length})
         </Button>
 
         {showArchive && archivedConversations.length > 0 && (
@@ -526,7 +528,7 @@ const ConversationSidebar = ({
           onClick={() => setShowDeleted(!showDeleted)}
         >
           <Trash2 className="w-4 h-4" />
-          Recently Deleted ({deletedConversations.length})
+          {t("Recently Deleted")} ({deletedConversations.length})
         </Button>
 
         {showDeleted && deletedConversations.length > 0 && (
@@ -553,7 +555,7 @@ const ConversationSidebar = ({
                     onClick={() => setPermanentDeleteId(conv.id)}
                   >
                     <AlertTriangle className="w-3 h-3 mr-1" />
-                    Delete Permanently
+                    {t("Delete Permanently")}
                   </Button>
                 </div>
               ))}
@@ -568,19 +570,21 @@ const ConversationSidebar = ({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="w-5 h-5" />
-              Permanently Delete Conversation?
+              {t("Permanently Delete Conversation?")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This conversation and all its messages will be permanently removed from our servers.
+              {t(
+                "This action cannot be undone. This conversation and all its messages will be permanently removed from our servers.",
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("Cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => permanentDeleteId && handlePermanentDelete(permanentDeleteId)}
             >
-              Delete Permanently
+              {t("Delete Permanently")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
