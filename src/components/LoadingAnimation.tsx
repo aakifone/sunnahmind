@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslate } from "@/hooks/useTranslate";
 
 interface LoadingAnimationProps {
@@ -6,15 +6,14 @@ interface LoadingAnimationProps {
 }
 
 const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
-  const [phase, setPhase] = useState<'forming' | 'display' | 'bgTransition' | 'morphing' | 'moving' | 'complete'>('forming');
+  const [phase, setPhase] = useState<'forming' | 'display' | 'bgTransition' | 'morphing' | 'fadeOut' | 'complete'>('forming');
   const arabicText = "السُّنَّة العَقْل";
   const englishText = "SunnahMind";
   const { t } = useTranslate();
   const [visibleArabicChars, setVisibleArabicChars] = useState(0);
   const [morphProgress, setMorphProgress] = useState(0);
   const [bgProgress, setBgProgress] = useState(0);
-  const [moveProgress, setMoveProgress] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [fadeOutProgress, setFadeOutProgress] = useState(0);
 
   const handleSkip = useCallback(() => {
     sessionStorage.setItem('hasSeenLoadingAnimation', 'true');
@@ -70,7 +69,8 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
         if (progress >= 1) {
           setMorphProgress(1);
           clearInterval(morphInterval);
-          setPhase('moving');
+          // Brief pause to show English text, then fade out
+          setTimeout(() => setPhase('fadeOut'), 400);
         } else {
           setMorphProgress(progress);
         }
@@ -80,28 +80,25 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
   }, [phase]);
 
   useEffect(() => {
-    if (phase === 'moving') {
+    if (phase === 'fadeOut') {
       let progress = 0;
-      const moveInterval = setInterval(() => {
-        progress += 0.025;
+      const fadeInterval = setInterval(() => {
+        progress += 0.04;
         if (progress >= 1) {
-          setMoveProgress(1);
-          clearInterval(moveInterval);
+          setFadeOutProgress(1);
+          clearInterval(fadeInterval);
           setPhase('complete');
         } else {
-          setMoveProgress(progress);
+          setFadeOutProgress(progress);
         }
       }, 16);
-      return () => clearInterval(moveInterval);
+      return () => clearInterval(fadeInterval);
     }
   }, [phase]);
 
   useEffect(() => {
     if (phase === 'complete') {
-      const completeTimer = setTimeout(() => {
-        onComplete();
-      }, 150);
-      return () => clearTimeout(completeTimer);
+      onComplete();
     }
   }, [phase, onComplete]);
 
@@ -113,59 +110,22 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
   const bgValue = Math.round(255 * easeOutCubic(bgProgress));
   const bgColor = `rgb(${bgValue}, ${bgValue}, ${bgValue})`;
 
-  // Get current element dimensions and calculate target
-  const easedMoveProgress = easeInOutQuart(moveProgress);
-  
-  // Header position: 
-  // - container has px-4 (16px padding)
-  // - logo div is 40x40 with gap-3 (12px) before text
-  // - header height is h-16 (64px), text is vertically centered
-  // Target: 16px padding + 40px logo + 12px gap = 68px from left
-  // Vertically: 32px from top (center of 64px header)
-  
-  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
-  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
-  
-  // Current center position
-  const centerX = viewportWidth / 2;
-  const centerY = viewportHeight / 2;
-  
-  // Target position (where header text sits)
-  // Header: sticky top-0, h-16 (64px), container mx-auto px-4
-  // Logo button: 40px logo + 12px gap + text
-  // For container mx-auto, we need to account for max container width
-  const containerPadding = 16; // px-4
-  const logoSize = 40;
-  const logoGap = 12; // gap-3
-  
-  // Target X: left padding + logo + gap + half of final text width
-  // Final text at 18px (text-lg) is roughly 120px wide for "Sunnah Mind"
-  const finalTextWidth = 130;
-  const targetX = containerPadding + logoSize + logoGap + (finalTextWidth / 2);
-  
-  // Target Y: center of header (32px from top)
-  const targetY = 32;
-  
-  // Calculate translation from center to target
-  const translateX = (targetX - centerX) * easedMoveProgress;
-  const translateY = (targetY - centerY) * easedMoveProgress;
-  
-  // Scale: from large (1) to header size
-  // Header text is text-lg (18px/1.125rem), current is ~56px (text-5xl md:text-7xl)
-  // Scale factor: 18/56 ≈ 0.32
-  const startScale = 1;
-  const endScale = 0.28;
-  const scale = startScale - (easedMoveProgress * (startScale - endScale));
-
   // Text display logic
   const easedMorph = easeInOutQuart(morphProgress);
   const showArabic = phase === 'forming' || phase === 'display' || phase === 'bgTransition' || (phase === 'morphing' && morphProgress < 1);
-  const showEnglish = phase === 'morphing' || phase === 'moving' || phase === 'complete';
+  const showEnglish = phase === 'morphing' || phase === 'fadeOut' || phase === 'complete';
+
+  // Fade out the entire animation
+  const containerOpacity = phase === 'fadeOut' ? 1 - easeOutCubic(fadeOutProgress) : 1;
 
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden"
-      style={{ backgroundColor: bgColor }}
+      style={{ 
+        backgroundColor: bgColor,
+        opacity: containerOpacity,
+        pointerEvents: phase === 'complete' ? 'none' : 'auto',
+      }}
     >
       {/* Skip Button */}
       <button
@@ -175,19 +135,12 @@ const LoadingAnimation = ({ onComplete }: LoadingAnimationProps) => {
             ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white border border-white/20' 
             : 'bg-black/10 text-black/70 hover:bg-black/20 hover:text-black border border-black/20'
         }`}
+        style={{ opacity: containerOpacity }}
       >
         {t("Skip")}
       </button>
 
-      <div
-        ref={containerRef}
-        className="flex items-center"
-        style={{
-          transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
-          willChange: 'transform',
-          transformOrigin: 'center center',
-        }}
-      >
+      <div className="flex items-center justify-center">
         {/* Text Container */}
         <div className="relative flex items-center justify-center" style={{ height: '80px' }}>
           {/* Arabic text */}
