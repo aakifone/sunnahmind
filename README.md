@@ -71,10 +71,3 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
-
-## Default Hadith and Quran editions
-
-SunnahMind uses the fawazahmed0 hadith-api and quran-api. You can change the default editions by updating:
-
-- `defaultHadithEdition` in `src/services/contentDefaults.ts`
-- `defaultQuranEdition` (and optional `defaultQuranArabicEdition`) in `src/services/contentDefaults.ts`
