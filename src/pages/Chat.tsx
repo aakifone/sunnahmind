@@ -566,19 +566,50 @@ const Chat = () => {
               <span>{t("Home")}</span>
             </Button>
             <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
-            {session?.user ? (
-              <AccountDropdown userEmail={session.user.email || ""} />
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/auth')}
-                className="gap-2 border-accent/30 hover:bg-accent/10"
-              >
-                <LogIn className="w-4 h-4" />
-                {t("Sign In")}
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {t("Hadith Edition")}
+                </span>
+                <Select
+                  value={selectedEdition}
+                  onValueChange={setSelectedEdition}
+                  disabled={editionStatus === "loading" || editionStatus === "error"}
+                >
+                  <SelectTrigger className="h-8 w-[200px] text-xs">
+                    <SelectValue placeholder={t("Select edition")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {editionOptions.map((edition) => (
+                      <SelectItem key={edition.name} value={edition.name}>
+                        {edition.collection ?? edition.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editionStatus === "loading" && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {t("Loading editions...")}
+                  </span>
+                )}
+                {editionStatus === "error" && (
+                  <span className="text-[10px] text-destructive">{editionError}</span>
+                )}
+              </div>
+              {session?.user ? (
+                <AccountDropdown userEmail={session.user.email || ""} />
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/auth')}
+                  className="gap-2 border-accent/30 hover:bg-accent/10"
+                >
+                  <LogIn className="w-4 h-4" />
+                  {t("Sign In")}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
