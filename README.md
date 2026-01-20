@@ -60,6 +60,10 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Hadith API defaults
+
+To change the default Hadith edition used for searches, update `defaultHadithEdition` in `src/services/contentDefaults.ts` and restart the dev server if it is running.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/9622f213-973f-48b5-b885-c39515b0cdf1) and click on Share -> Publish.

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Sparkles, LogIn, Home } from "lucide-react";
@@ -11,6 +11,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslate } from "@/hooks/useTranslate";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { QuranCitationData } from "@/components/QuranCitation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { z } from 'zod';
 import { useFavorites } from "@/hooks/useFavorites";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { defaultHadithEdition } from "@/services/contentDefaults";
+import {
+  fetchRelevantHadith,
+  HadithEditionSummary,
+  HadithSearchResult,
+  listHadithEditions,
+} from "@/services/hadithApi";
 
 const messageSchema = z.object({
   content: z.string()
@@ -31,12 +46,23 @@ const messageSchema = z.object({
     .trim()
 });
 
+interface Citation {
+  collection: string;
+  hadithNumber: string;
+  narrator?: string;
+  url: string;
+  translation?: string;
+  arabic?: string;
+  sourceUrl?: string;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
-  citations?: any[];
-  quranCitations?: any[];
+  citations?: Citation[];
+  quranCitations?: QuranCitationData[];
   timestamp: Date;
+  requestId?: number;
 }
 
 const Chat = () => {
@@ -62,9 +88,42 @@ const Chat = () => {
   const [showSignUpDialog, setShowSignUpDialog] = useState(false);
   const [hasAskedFirstQuestion, setHasAskedFirstQuestion] = useState(false);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
+  const [editionOptions, setEditionOptions] = useState<HadithEditionSummary[]>([]);
+  const [editionStatus, setEditionStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [editionError, setEditionError] = useState<string | null>(null);
+  const [selectedEdition, setSelectedEdition] = useState(() => {
+    if (typeof window === "undefined") {
+      return defaultHadithEdition;
+    }
+    return window.localStorage.getItem("hadith-selected-edition") || defaultHadithEdition;
+  });
+  const [hadithResults, setHadithResults] = useState<HadithSearchResult[]>([]);
+  const [hadithStatus, setHadithStatus] = useState<
+    "idle" | "loading" | "error" | "empty" | "success"
+  >("idle");
+  const [hadithError, setHadithError] = useState<string | null>(null);
+  const [hadithQuery, setHadithQuery] = useState("");
+  const requestIdRef = useRef(0);
+  const pendingHadithCitations = useRef(new Map<number, Citation[]>());
 
   // Favorites hook
   const { favorites, removeFavorite } = useFavorites();
+
+  const selectedEditionLabel = useMemo(() => {
+    const selected = editionOptions.find((edition) => edition.name === selectedEdition);
+    if (!selected) return selectedEdition;
+    const collectionLabel = selected.collection ?? selected.name;
+    return selected.language ? `${collectionLabel} (${selected.language})` : collectionLabel;
+  }, [editionOptions, selectedEdition]);
+
+  const getEditionLabel = useCallback(
+    (editionName: string) => {
+      const selected = editionOptions.find((edition) => edition.name === editionName);
+      if (!selected) return editionName;
+      return selected.collection ?? selected.name;
+    },
+    [editionOptions],
+  );
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -81,6 +140,37 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const loadEditions = async () => {
+      setEditionStatus("loading");
+      setEditionError(null);
+      try {
+        const editions = await listHadithEditions();
+        const sorted = [...editions].sort((a, b) =>
+          (a.collection ?? a.name).localeCompare(b.collection ?? b.name),
+        );
+        setEditionOptions(sorted);
+        setEditionStatus("idle");
+
+        if (!sorted.some((edition) => edition.name === selectedEdition)) {
+          setSelectedEdition(sorted[0]?.name ?? defaultHadithEdition);
+        }
+      } catch (error) {
+        console.error("Failed to load hadith editions:", error);
+        setEditionStatus("error");
+        setEditionError(t("Unable to load editions. Please retry."));
+      }
+    };
+
+    loadEditions();
+  }, [t]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("hadith-selected-edition", selectedEdition);
+    }
+  }, [selectedEdition]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -102,6 +192,74 @@ const Chat = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  const mergeHadithCitations = useCallback((requestId: number, citations: Citation[]) => {
+    if (citations.length === 0) return;
+
+    setMessages((prev) =>
+      prev.map((message) => {
+        if (message.requestId !== requestId || message.role !== "assistant") {
+          return message;
+        }
+        const existing = message.citations ?? [];
+        return {
+          ...message,
+          citations: [...existing, ...citations],
+        };
+      }),
+    );
+  }, []);
+
+  const runHadithSearch = useCallback(
+    async (query: string, requestId: number) => {
+      const trimmedQuery = query.trim();
+      if (!trimmedQuery) {
+        setHadithStatus("idle");
+        setHadithResults([]);
+        return;
+      }
+
+      setHadithStatus("loading");
+      setHadithError(null);
+
+      try {
+        const results = await fetchRelevantHadith(trimmedQuery, selectedEdition);
+        if (results.length === 0) {
+          setHadithStatus("empty");
+          setHadithResults([]);
+        } else {
+          setHadithStatus("success");
+          setHadithResults(results);
+        }
+
+        const citations = results.map((hadith) => ({
+          collection: getEditionLabel(hadith.editionName),
+          hadithNumber: hadith.hadithNumber ?? t("N/A"),
+          url: hadith.sunnahUrl ?? hadith.sourceUrl,
+          translation: hadith.text,
+          arabic: hadith.arabic,
+          sourceUrl: hadith.sourceUrl,
+        }));
+
+        if (citations.length > 0) {
+          pendingHadithCitations.current.set(requestId, citations);
+          mergeHadithCitations(requestId, citations);
+        }
+      } catch (error) {
+        console.error("Failed to fetch relevant hadith:", error);
+        setHadithStatus("error");
+        setHadithResults([]);
+        setHadithError(t("Unable to fetch hadiths. Please try again."));
+      }
+    },
+    [getEditionLabel, mergeHadithCitations, selectedEdition, t],
+  );
+
+  useEffect(() => {
+    if (hadithQuery) {
+      runHadithSearch(hadithQuery, requestIdRef.current);
+    }
+  }, [runHadithSearch, selectedEdition]);
 
   const createNewConversation = async () => {
     if (!session?.user) return null;
@@ -159,11 +317,11 @@ const Chat = () => {
       return;
     }
 
-    const loadedMessages: Message[] = data.map((msg: any) => ({
+    const loadedMessages: Message[] = data.map((msg) => ({
       role: msg.role as "user" | "assistant",
       content: msg.content,
-      citations: msg.citations as any[],
-      quranCitations: msg.quran_citations as any[],
+      citations: (msg.citations as Citation[] | null) ?? undefined,
+      quranCitations: (msg.quran_citations as QuranCitationData[] | null) ?? undefined,
       timestamp: new Date(msg.created_at),
     }));
 
@@ -208,13 +366,21 @@ const Chat = () => {
       setCurrentConversationId(conversationId);
     }
 
+    const trimmedQuery = input.trim();
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     const userMessage: Message = {
       role: "user",
       content: input,
       timestamp: new Date(),
+      requestId,
     };
 
     setMessages(prev => [...prev, userMessage]);
+
+    setHadithQuery(trimmedQuery);
+    void runHadithSearch(trimmedQuery, requestId);
     
     if (session?.user && conversationId) {
       await saveMessage(conversationId, userMessage);
@@ -258,9 +424,23 @@ const Chat = () => {
         citations: data.citations || [],
         quranCitations: data.quranCitations || [],
         timestamp: new Date(),
+        requestId,
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev => {
+        const pendingCitations = pendingHadithCitations.current.get(requestId) ?? [];
+        if (pendingCitations.length === 0) {
+          return [...prev, assistantMessage];
+        }
+        pendingHadithCitations.current.delete(requestId);
+        return [
+          ...prev,
+          {
+            ...assistantMessage,
+            citations: [...(assistantMessage.citations ?? []), ...pendingCitations],
+          },
+        ];
+      });
       
       if (session?.user && conversationId) {
         await saveMessage(conversationId, assistantMessage);
@@ -375,7 +555,7 @@ const Chat = () => {
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="border-b border-border/40 bg-card/50 backdrop-blur px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <Button
               variant="ghost"
               size="sm"
@@ -438,6 +618,7 @@ const Chat = () => {
                 </div>
               </div>
             )}
+
             <div ref={messagesEndRef} />
           </div>
         </div>
@@ -465,12 +646,78 @@ const Chat = () => {
                 <Send className="w-5 h-5" />
               </Button>
             </div>
-
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              {t(
-                "Authentic sources from sunnah.com & quran.com • Not for issuing fatwas",
-              )}
-            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Select
+                  value={selectedEdition}
+                  onValueChange={setSelectedEdition}
+                  disabled={editionStatus === "loading" || editionStatus === "error"}
+                >
+                  <SelectTrigger className="h-7 w-[170px] text-xs" aria-label={t("Hadith Edition")}>
+                    <SelectValue placeholder={t("Select edition")} />
+                  </SelectTrigger>
+                  <SelectContent position="popper" side="top" align="start">
+                    {editionOptions.map((edition) => (
+                      <SelectItem key={edition.name} value={edition.name}>
+                        {edition.collection ?? edition.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-muted-foreground">
+                  {t("Edition")}: {selectedEditionLabel}
+                </span>
+                {editionStatus === "loading" && (
+                  <span className="text-xs text-muted-foreground">
+                    {t("Loading editions...")}
+                  </span>
+                )}
+                {editionStatus === "error" && (
+                  <span className="text-xs text-destructive">
+                    {editionError ?? t("Failed to load editions.")}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                {t(
+                  "Authentic sources from sunnah.com & quran.com • Not for issuing fatwas",
+                )}
+              </p>
+            </div>
+            {hadithStatus !== "idle" && (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  {hadithStatus === "loading" && (
+                    <>
+                      <div className="h-3 w-3 animate-spin rounded-full border border-accent border-t-transparent" />
+                      <span>{t("Fetching hadith citations...")}</span>
+                    </>
+                  )}
+                  {hadithStatus === "empty" && (
+                    <span>{t("No relevant hadiths found in the sampled set.")}</span>
+                  )}
+                  {hadithStatus === "success" && hadithResults.length > 0 && (
+                    <span>
+                      {t("Added")} {hadithResults.length} {t("hadith citations")}
+                    </span>
+                  )}
+                  {hadithStatus === "error" && (
+                    <span className="text-destructive">
+                      {hadithError ?? t("Unable to fetch hadiths.")}
+                    </span>
+                  )}
+                </div>
+                {hadithStatus === "error" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => runHadithSearch(hadithQuery, requestIdRef.current)}
+                  >
+                    {t("Retry")}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
