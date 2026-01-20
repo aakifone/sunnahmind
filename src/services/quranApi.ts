@@ -1,5 +1,5 @@
 import { buildFawazUrls, fetchJsonWithFallback, getCachedEditions, setCachedEditions } from "@/services/fawazFetch";
-import { defaultQuranEdition } from "@/services/contentDefaults";
+import { defaultQuranEdition, fallbackQuranEditions } from "@/services/contentDefaults";
 
 const QURAN_PRIMARY_BASE = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1";
 const QURAN_FALLBACK_BASE = "https://raw.githubusercontent.com/fawazahmed0/quran-api/1";
@@ -124,18 +124,23 @@ export const listQuranEditions = async (): Promise<QuranEdition[]> => {
     return cached;
   }
 
-  const urls = buildFawazUrls(QURAN_PRIMARY_BASE, QURAN_FALLBACK_BASE, "editions");
-  const data = await fetchJsonWithFallback(urls);
+  try {
+    const urls = buildFawazUrls(QURAN_PRIMARY_BASE, QURAN_FALLBACK_BASE, "editions");
+    const data = await fetchJsonWithFallback(urls);
 
-  const editions = Array.isArray(data)
-    ? data.map(normalizeEdition).filter((edition): edition is QuranEdition => Boolean(edition))
-    : [];
+    const editions = Array.isArray(data)
+      ? data.map(normalizeEdition).filter((edition): edition is QuranEdition => Boolean(edition))
+      : [];
 
-  if (editions.length > 0) {
-    setCachedEditions(QURAN_EDITIONS_CACHE_KEY, editions);
+    if (editions.length > 0) {
+      setCachedEditions(QURAN_EDITIONS_CACHE_KEY, editions);
+      return editions;
+    }
+  } catch {
+    // ignore and fall back to defaults
   }
 
-  return editions;
+  return fallbackQuranEditions as QuranEdition[];
 };
 
 export const getStoredQuranEdition = () => {

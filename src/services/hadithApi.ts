@@ -1,5 +1,5 @@
 import { buildFawazUrls, fetchJsonWithFallback, getCachedEditions, setCachedEditions } from "@/services/fawazFetch";
-import { defaultHadithEdition } from "@/services/contentDefaults";
+import { defaultHadithEdition, fallbackHadithEditions } from "@/services/contentDefaults";
 
 const HADITH_PRIMARY_BASE = "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1";
 const HADITH_FALLBACK_BASE = "https://raw.githubusercontent.com/fawazahmed0/hadith-api/1";
@@ -126,18 +126,23 @@ export const listHadithEditions = async (): Promise<HadithEdition[]> => {
     return cached;
   }
 
-  const urls = buildFawazUrls(HADITH_PRIMARY_BASE, HADITH_FALLBACK_BASE, "editions");
-  const data = await fetchJsonWithFallback(urls);
+  try {
+    const urls = buildFawazUrls(HADITH_PRIMARY_BASE, HADITH_FALLBACK_BASE, "editions");
+    const data = await fetchJsonWithFallback(urls);
 
-  const editions = Array.isArray(data)
-    ? data.map(normalizeEdition).filter((edition): edition is HadithEdition => Boolean(edition))
-    : [];
+    const editions = Array.isArray(data)
+      ? data.map(normalizeEdition).filter((edition): edition is HadithEdition => Boolean(edition))
+      : [];
 
-  if (editions.length > 0) {
-    setCachedEditions(HADITH_EDITIONS_CACHE_KEY, editions);
+    if (editions.length > 0) {
+      setCachedEditions(HADITH_EDITIONS_CACHE_KEY, editions);
+      return editions;
+    }
+  } catch {
+    // ignore and fall back to defaults
   }
 
-  return editions;
+  return fallbackHadithEditions as HadithEdition[];
 };
 
 export const getStoredHadithEdition = () => {

@@ -106,7 +106,23 @@ export const fetchRelevantHadith = async (
     })
     .filter((item) => item.matches);
 
-  return matches.slice(0, 3).map(({ entry, hadithNo, endpoint }) => ({
+  const fallback = fetches
+    .filter(
+      (
+        item,
+      ): item is { entry: NonNullable<Awaited<ReturnType<typeof getHadithByNumber>>>; hadithNo: number } =>
+        Boolean(item),
+    )
+    .slice(0, 3)
+    .map(({ entry, hadithNo }) => ({
+      entry,
+      hadithNo,
+      endpoint: `editions/${editionName}/${hadithNo}`,
+    }));
+
+  const selected = matches.length > 0 ? matches.slice(0, 3) : fallback;
+
+  return selected.map(({ entry, hadithNo, endpoint }) => ({
     editionName,
     hadithNumber: entry.hadithNumber || String(hadithNo),
     section: entry.section,
@@ -151,7 +167,11 @@ export const fetchRelevantVerses = async (
       matchesKeywords(item.translation, keywords) || matchesKeywords(item.arabicText, keywords),
     );
 
-  return matches.slice(0, 3).map((item) => ({
+  const fallback = verseFetches.filter((item): item is NonNullable<typeof item> => Boolean(item)).slice(0, 3);
+
+  const selected = matches.length > 0 ? matches.slice(0, 3) : fallback;
+
+  return selected.map((item) => ({
     surahNumber: item.surah,
     ayahNumber: item.ayah,
     arabicText: item.arabicText,
