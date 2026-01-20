@@ -9,15 +9,3 @@ export interface HadithCitationData {
   source: "fawazahmed0 hadith-api";
   sunnahLink?: string;
 }
-
-export interface QuranCitationData {
-  surahNumber: number;
-  ayahNumber: number;
-  surahName?: string;
-  arabicText?: string;
-  translation?: string;
-  editionName: string;
-  endpoint: string;
-  source: "fawazahmed0 quran-api";
-  url: string;
-}

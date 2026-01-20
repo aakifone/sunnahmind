@@ -2,7 +2,7 @@ import { ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuranCitation from "@/components/QuranCitation";
 import { useTranslate } from "@/hooks/useTranslate";
-import type { HadithCitationData, QuranCitationData } from "@/types/citations";
+import type { HadithCitationData } from "@/types/citations";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -10,11 +10,8 @@ interface ChatMessageProps {
   citations?: HadithCitationData[];
   quranCitations?: QuranCitationData[];
   hadithStatus?: "loading" | "ready" | "empty" | "error";
-  quranStatus?: "loading" | "ready" | "empty" | "error";
   hadithError?: string;
-  quranError?: string;
   onRetryHadith?: () => void;
-  onRetryQuran?: () => void;
   timestamp?: Date;
 }
 
@@ -24,11 +21,8 @@ const ChatMessage = ({
   citations,
   quranCitations,
   hadithStatus,
-  quranStatus,
   hadithError,
-  quranError,
   onRetryHadith,
-  onRetryQuran,
   timestamp,
 }: ChatMessageProps) => {
   const { t } = useTranslate();
@@ -72,33 +66,6 @@ const ChatMessage = ({
 
     if (hadithStatus === "empty") {
       return <div className="text-xs text-muted-foreground">{t("No relevant hadith found.")}</div>;
-    }
-
-    return null;
-  };
-
-  const renderQuranStatus = () => {
-    if (quranStatus === "loading") {
-      return (
-        <div className="text-xs text-muted-foreground">{t("Loading Quran sources...")}</div>
-      );
-    }
-
-    if (quranStatus === "error") {
-      return (
-        <div className="flex flex-col gap-2 text-xs text-muted-foreground">
-          <span>{quranError || t("Unable to load Quran sources.")}</span>
-          {onRetryQuran && (
-            <Button variant="outline" size="sm" onClick={onRetryQuran} className="w-fit">
-              {t("Retry")}
-            </Button>
-          )}
-        </div>
-      );
-    }
-
-    if (quranStatus === "empty") {
-      return <div className="text-xs text-muted-foreground">{t("No relevant Quran verses found.")}</div>;
     }
 
     return null;
@@ -200,15 +167,13 @@ const ChatMessage = ({
           ) : null}
 
           {/* Quran Citations Section */}
-          {(quranCitations && quranCitations.length > 0) || quranStatus ? (
+          {quranCitations && quranCitations.length > 0 ? (
             <div className="border-t border-emerald-500/20 pt-5 mt-4 space-y-4">
               <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 uppercase tracking-wider">
                 <BookOpen className="w-5 h-5" />
                 {quranCitations?.length || 0} {t("Quran Verse")}
                 {(quranCitations?.length || 0) > 1 ? "s" : ""}
               </div>
-
-              {renderQuranStatus()}
 
               {quranCitations?.map((citation, index) => (
                 <QuranCitation key={index} citation={citation} />

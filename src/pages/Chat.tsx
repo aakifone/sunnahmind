@@ -30,14 +30,9 @@ import {
   setStoredHadithEdition,
   type HadithEdition,
 } from "@/services/hadithApi";
-import {
-  getStoredQuranEdition,
-  listQuranEditions,
-  setStoredQuranEdition,
-  type QuranEdition,
-} from "@/services/quranApi";
-import { fetchRelevantHadith, fetchRelevantVerses } from "@/services/relevantContent";
-import type { HadithCitationData, QuranCitationData } from "@/types/citations";
+import { fetchRelevantHadith } from "@/services/relevantContent";
+import type { HadithCitationData } from "@/types/citations";
+import type { QuranCitationData } from "@/components/QuranCitation";
 
 const messageSchema = z.object({
   content: z.string().min(1, "Message cannot be empty").max(2000, "Message must be less than 2000 characters").trim(),
@@ -53,9 +48,7 @@ interface Message {
   citations?: HadithCitationData[];
   quranCitations?: QuranCitationData[];
   hadithStatus?: CitationStatus;
-  quranStatus?: CitationStatus;
   hadithError?: string;
-  quranError?: string;
   timestamp: Date;
 }
 
@@ -99,9 +92,7 @@ const Chat = () => {
   const [hasAskedFirstQuestion, setHasAskedFirstQuestion] = useState(false);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
   const [hadithEditions, setHadithEditions] = useState<HadithEdition[]>([]);
-  const [quranEditions, setQuranEditions] = useState<QuranEdition[]>([]);
   const [hadithEdition, setHadithEdition] = useState(getStoredHadithEdition());
-  const [quranEdition, setQuranEdition] = useState(getStoredQuranEdition());
   const [editionError, setEditionError] = useState<string | null>(null);
 
   const { favorites, removeFavorite } = useFavorites();
@@ -141,9 +132,8 @@ const Chat = () => {
   useEffect(() => {
     const loadEditions = async () => {
       try {
-        const [hadithData, quranData] = await Promise.all([listHadithEditions(), listQuranEditions()]);
+        const hadithData = await listHadithEditions();
         setHadithEditions(hadithData);
-        setQuranEditions(quranData);
         setEditionError(null);
       } catch (error) {
         console.error("Error loading editions:", error);
@@ -223,7 +213,6 @@ const Chat = () => {
         citations: hadithCitations,
         quranCitations,
         hadithStatus: hadithCitations.length > 0 ? "ready" : undefined,
-        quranStatus: quranCitations.length > 0 ? "ready" : undefined,
         timestamp: new Date(msg.created_at),
       };
     });
@@ -262,25 +251,6 @@ const Chat = () => {
       updateMessageById(messageId, {
         hadithStatus: "error",
         hadithError: t("Could not load hadith sources. Please retry."),
-      });
-      return [];
-    }
-  };
-
-  const loadQuranCitations = async (messageId: string, query: string) => {
-    updateMessageById(messageId, { quranStatus: "loading", quranError: undefined });
-
-    try {
-      const citations = await fetchRelevantVerses(query, quranEdition);
-      updateMessageById(messageId, {
-        quranCitations: citations,
-        quranStatus: citations.length > 0 ? "ready" : "empty",
-      });
-      return citations;
-    } catch (error) {
-      updateMessageById(messageId, {
-        quranStatus: "error",
-        quranError: t("Could not load Quran sources. Please retry."),
       });
       return [];
     }
@@ -356,30 +326,26 @@ const Chat = () => {
       const data = await response.json();
 
       const assistantMessageId = createMessageId();
-    const assistantMessage: Message = {
-      id: assistantMessageId,
-      role: "assistant",
-      content: data.content,
-      query: queryText,
-      citations: [],
-      quranCitations: [],
-      hadithStatus: "loading",
-      quranStatus: "loading",
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        role: "assistant",
+        content: data.content,
+        query: queryText,
+        citations: [],
+        quranCitations: (data.quranCitations as QuranCitationData[]) || [],
+        hadithStatus: "loading",
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      const [hadithCitations, quranCitations] = await Promise.all([
-        loadHadithCitations(assistantMessageId, queryText),
-        loadQuranCitations(assistantMessageId, queryText),
-      ]);
+      const hadithCitations = await loadHadithCitations(assistantMessageId, queryText);
 
       if (session?.user && conversationId) {
         await saveMessage(conversationId, {
           ...assistantMessage,
           citations: hadithCitations,
-          quranCitations,
+          quranCitations: assistantMessage.quranCitations,
         });
 
         if (messages.length === 1) {
@@ -427,16 +393,10 @@ const Chat = () => {
     setStoredHadithEdition(value);
   };
 
-  const handleQuranEditionChange = (value: string) => {
-    setQuranEdition(value);
-    setStoredQuranEdition(value);
-  };
-
   const retryEditions = async () => {
     try {
-      const [hadithData, quranData] = await Promise.all([listHadithEditions(), listQuranEditions()]);
+      const hadithData = await listHadithEditions();
       setHadithEditions(hadithData);
-      setQuranEditions(quranData);
       setEditionError(null);
     } catch (error) {
       console.error("Error loading editions:", error);
@@ -537,13 +497,10 @@ const Chat = () => {
                   citations={message.citations}
                   quranCitations={message.quranCitations}
                   hadithStatus={message.hadithStatus}
-                  quranStatus={message.quranStatus}
                   hadithError={message.hadithError}
-                  quranError={message.quranError}
                   onRetryHadith={
                     message.query ? () => loadHadithCitations(message.id, message.query) : undefined
                   }
-                  onRetryQuran={message.query ? () => loadQuranCitations(message.id, message.query) : undefined}
                   timestamp={message.timestamp}
                 />
               </div>
@@ -589,7 +546,7 @@ const Chat = () => {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">{t("Hadith edition")}</p>
                 <Select value={hadithEdition} onValueChange={handleHadithEditionChange}>
@@ -598,22 +555,6 @@ const Chat = () => {
                   </SelectTrigger>
                   <SelectContent side="top" position="popper">
                     {hadithEditions.map((edition) => (
-                      <SelectItem key={edition.name} value={edition.name}>
-                        {edition.englishName || edition.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">{t("Quran edition")}</p>
-                <Select value={quranEdition} onValueChange={handleQuranEditionChange}>
-                  <SelectTrigger className="bg-background/70">
-                    <SelectValue placeholder={t("Select an edition")} />
-                  </SelectTrigger>
-                  <SelectContent side="top" position="popper">
-                    {quranEditions.map((edition) => (
                       <SelectItem key={edition.name} value={edition.name}>
                         {edition.englishName || edition.name}
                       </SelectItem>
@@ -634,7 +575,7 @@ const Chat = () => {
 
             <p className="text-xs text-muted-foreground mt-2 text-center">
               {t(
-                "Sources from fawazahmed0 hadith-api & quran-api • Links open on sunnah.com and quran.com • Not for issuing fatwas",
+                "Sources from fawazahmed0 hadith-api plus sunnah.com/quran.com citations • Not for issuing fatwas",
               )}
             </p>
           </div>
