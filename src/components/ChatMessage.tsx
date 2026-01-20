@@ -1,6 +1,6 @@
 import { ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import QuranCitation, { QuranCitationData } from "@/components/QuranCitation";
+import QuranCitation from "@/components/QuranCitation";
 import { useTranslate } from "@/hooks/useTranslate";
 import type { HadithCitationData } from "@/types/citations";
 
@@ -186,7 +186,7 @@ const ChatMessage = ({
               💡{" "}
               <span className="font-semibold text-accent">{t("Important:")}</span>{" "}
               {t(
-                "These authentic sources are from sunnah.com and quran.com. For personal religious rulings (fatwas), please consult qualified Islamic scholars.",
+                "These citations are sourced from the fawazahmed0 hadith-api and quran-api. For personal religious rulings (fatwas), please consult qualified Islamic scholars.",
               )}
             </p>
           </div>
