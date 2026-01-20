@@ -596,7 +596,7 @@ const Chat = () => {
                   <SelectTrigger className="bg-background/70">
                     <SelectValue placeholder={t("Select an edition")} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="top" position="popper">
                     {hadithEditions.map((edition) => (
                       <SelectItem key={edition.name} value={edition.name}>
                         {edition.englishName || edition.name}
@@ -612,7 +612,7 @@ const Chat = () => {
                   <SelectTrigger className="bg-background/70">
                     <SelectValue placeholder={t("Select an edition")} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="top" position="popper">
                     {quranEditions.map((edition) => (
                       <SelectItem key={edition.name} value={edition.name}>
                         {edition.englishName || edition.name}
