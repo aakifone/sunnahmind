@@ -181,8 +181,8 @@ export const getHadithApiInfo = async (): Promise<FetchResult<unknown>> =>
 export const fetchRelevantHadith = async (
   query: string,
   editionName: string,
-  maxSampleCount = 200,
-  maxResults = 12,
+  maxSampleCount = 60,
+  maxResults = 8,
 ): Promise<HadithSearchResult[]> => {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return [];
@@ -222,22 +222,33 @@ export const fetchRelevantHadith = async (
     // fall through to hadith number fetch
   }
 
-  for (let i = 1; i <= maxSampleCount && results.length < maxResults; i += 1) {
+  const fetchHadithByNumberSafe = async (number: number): Promise<HadithSearchResult[]> => {
     try {
-      const hadithResult = await getHadithByNumber(editionName, i);
+      const hadithResult = await getHadithByNumber(editionName, number);
       const metadata = extractMetadata(hadithResult.data);
-      const hadiths = extractHadithArray(hadithResult.data)
+      return extractHadithArray(hadithResult.data)
         .map((item) => normalizeHadithItem(item, metadata, editionName, hadithResult.sourceUrl))
         .filter((item): item is HadithSearchResult => Boolean(item));
-
-      for (const hadith of hadiths) {
-        if (matchesQuery(hadith.text)) {
-          results.push(hadith);
-          if (results.length >= maxResults) return results;
-        }
-      }
     } catch {
-      // ignore and continue
+      return [];
+    }
+  };
+
+  const batchSize = 6;
+  for (let i = 1; i <= maxSampleCount && results.length < maxResults; i += batchSize) {
+    const batchNumbers = Array.from({ length: batchSize }, (_, index) => i + index).filter(
+      (number) => number <= maxSampleCount,
+    );
+    const batchResults = await Promise.all(
+      batchNumbers.map((number) => fetchHadithByNumberSafe(number)),
+    );
+    const flattened = batchResults.flat();
+
+    for (const hadith of flattened) {
+      if (matchesQuery(hadith.text)) {
+        results.push(hadith);
+        if (results.length >= maxResults) return results;
+      }
     }
   }
 
