@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Sparkles, LogIn, Home } from "lucide-react";
@@ -23,6 +23,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { z } from 'zod';
 import { useFavorites } from "@/hooks/useFavorites";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { defaultHadithEdition } from "@/services/contentDefaults";
+import {
+  fetchRelevantHadith,
+  HadithEditionSummary,
+  HadithSearchResult,
+  listHadithEditions,
+} from "@/services/hadithApi";
 
 const messageSchema = z.object({
   content: z.string()
@@ -62,9 +76,31 @@ const Chat = () => {
   const [showSignUpDialog, setShowSignUpDialog] = useState(false);
   const [hasAskedFirstQuestion, setHasAskedFirstQuestion] = useState(false);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
+  const [editionOptions, setEditionOptions] = useState<HadithEditionSummary[]>([]);
+  const [editionStatus, setEditionStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [editionError, setEditionError] = useState<string | null>(null);
+  const [selectedEdition, setSelectedEdition] = useState(() => {
+    if (typeof window === "undefined") {
+      return defaultHadithEdition;
+    }
+    return window.localStorage.getItem("hadith-selected-edition") || defaultHadithEdition;
+  });
+  const [hadithResults, setHadithResults] = useState<HadithSearchResult[]>([]);
+  const [hadithStatus, setHadithStatus] = useState<
+    "idle" | "loading" | "error" | "empty" | "success"
+  >("idle");
+  const [hadithError, setHadithError] = useState<string | null>(null);
+  const [hadithQuery, setHadithQuery] = useState("");
 
   // Favorites hook
   const { favorites, removeFavorite } = useFavorites();
+
+  const selectedEditionLabel = useMemo(() => {
+    const selected = editionOptions.find((edition) => edition.name === selectedEdition);
+    if (!selected) return selectedEdition;
+    const collectionLabel = selected.collection ?? selected.name;
+    return selected.language ? `${collectionLabel} (${selected.language})` : collectionLabel;
+  }, [editionOptions, selectedEdition]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -81,6 +117,37 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const loadEditions = async () => {
+      setEditionStatus("loading");
+      setEditionError(null);
+      try {
+        const editions = await listHadithEditions();
+        const sorted = [...editions].sort((a, b) =>
+          (a.collection ?? a.name).localeCompare(b.collection ?? b.name),
+        );
+        setEditionOptions(sorted);
+        setEditionStatus("idle");
+
+        if (!sorted.some((edition) => edition.name === selectedEdition)) {
+          setSelectedEdition(sorted[0]?.name ?? defaultHadithEdition);
+        }
+      } catch (error) {
+        console.error("Failed to load hadith editions:", error);
+        setEditionStatus("error");
+        setEditionError(t("Unable to load editions. Please retry."));
+      }
+    };
+
+    loadEditions();
+  }, [t]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("hadith-selected-edition", selectedEdition);
+    }
+  }, [selectedEdition]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -102,6 +169,43 @@ const Chat = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  const runHadithSearch = useCallback(
+    async (query: string) => {
+      const trimmedQuery = query.trim();
+      if (!trimmedQuery) {
+        setHadithStatus("idle");
+        setHadithResults([]);
+        return;
+      }
+
+      setHadithStatus("loading");
+      setHadithError(null);
+
+      try {
+        const results = await fetchRelevantHadith(trimmedQuery, selectedEdition);
+        if (results.length === 0) {
+          setHadithStatus("empty");
+          setHadithResults([]);
+        } else {
+          setHadithStatus("success");
+          setHadithResults(results);
+        }
+      } catch (error) {
+        console.error("Failed to fetch relevant hadith:", error);
+        setHadithStatus("error");
+        setHadithResults([]);
+        setHadithError(t("Unable to fetch hadiths. Please try again."));
+      }
+    },
+    [selectedEdition, t],
+  );
+
+  useEffect(() => {
+    if (hadithQuery) {
+      runHadithSearch(hadithQuery);
+    }
+  }, [runHadithSearch, selectedEdition]);
 
   const createNewConversation = async () => {
     if (!session?.user) return null;
@@ -208,6 +312,8 @@ const Chat = () => {
       setCurrentConversationId(conversationId);
     }
 
+    const trimmedQuery = input.trim();
+
     const userMessage: Message = {
       role: "user",
       content: input,
@@ -215,6 +321,9 @@ const Chat = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+
+    setHadithQuery(trimmedQuery);
+    void runHadithSearch(trimmedQuery);
     
     if (session?.user && conversationId) {
       await saveMessage(conversationId, userMessage);
@@ -375,7 +484,7 @@ const Chat = () => {
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="border-b border-border/40 bg-card/50 backdrop-blur px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <Button
               variant="ghost"
               size="sm"
@@ -386,19 +495,50 @@ const Chat = () => {
               <span>{t("Home")}</span>
             </Button>
             <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
-            {session?.user ? (
-              <AccountDropdown userEmail={session.user.email || ""} />
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/auth')}
-                className="gap-2 border-accent/30 hover:bg-accent/10"
-              >
-                <LogIn className="w-4 h-4" />
-                {t("Sign In")}
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {t("Hadith Edition")}
+                </span>
+                <Select
+                  value={selectedEdition}
+                  onValueChange={setSelectedEdition}
+                  disabled={editionStatus === "loading" || editionStatus === "error"}
+                >
+                  <SelectTrigger className="h-8 w-[200px] text-xs">
+                    <SelectValue placeholder={t("Select edition")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {editionOptions.map((edition) => (
+                      <SelectItem key={edition.name} value={edition.name}>
+                        {edition.collection ?? edition.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editionStatus === "loading" && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {t("Loading editions...")}
+                  </span>
+                )}
+                {editionStatus === "error" && (
+                  <span className="text-[10px] text-destructive">{editionError}</span>
+                )}
+              </div>
+              {session?.user ? (
+                <AccountDropdown userEmail={session.user.email || ""} />
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/auth')}
+                  className="gap-2 border-accent/30 hover:bg-accent/10"
+                >
+                  <LogIn className="w-4 h-4" />
+                  {t("Sign In")}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -436,6 +576,115 @@ const Chat = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {hadithStatus !== "idle" && (
+              <div className="mt-6 rounded-2xl border border-accent/20 bg-card/60 p-5 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {t("Relevant Hadiths")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("Edition")}: {selectedEditionLabel}
+                    </p>
+                  </div>
+                  {hadithQuery && (
+                    <span className="text-xs text-muted-foreground">
+                      {t("Query")}: “{hadithQuery}”
+                    </span>
+                  )}
+                </div>
+
+                {hadithStatus === "loading" && (
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                    <span className="text-sm">
+                      {t("Searching the latest sources...")}
+                    </span>
+                  </div>
+                )}
+
+                {hadithStatus === "error" && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-destructive">
+                      {hadithError ?? t("Something went wrong.")}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => runHadithSearch(hadithQuery)}
+                    >
+                      {t("Retry")}
+                    </Button>
+                  </div>
+                )}
+
+                {hadithStatus === "empty" && (
+                  <p className="text-sm text-muted-foreground">
+                    {t("No matches found in the sampled hadiths. Try another edition or refine your query.")}
+                  </p>
+                )}
+
+                {hadithStatus === "success" && (
+                  <div className="space-y-4">
+                    {hadithResults.map((hadith, index) => (
+                      <div
+                        key={`${hadith.editionName}-${hadith.hadithNumber ?? index}`}
+                        className="rounded-xl border border-accent/20 bg-background/70 p-4 shadow-sm"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="rounded-full bg-accent/10 px-2 py-1 font-semibold text-accent">
+                              {hadith.editionName}
+                            </span>
+                            {hadith.hadithNumber && (
+                              <span className="rounded-full bg-muted px-2 py-1 text-foreground">
+                                {t("Hadith")} #{hadith.hadithNumber}
+                              </span>
+                            )}
+                            {hadith.section && (
+                              <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
+                                {t("Section")}: {hadith.section}
+                              </span>
+                            )}
+                            {hadith.book && (
+                              <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
+                                {t("Book")}: {hadith.book}
+                              </span>
+                            )}
+                          </div>
+                          <a
+                            href={hadith.sunnahUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-semibold text-accent hover:text-accent/80"
+                          >
+                            {t("View on Sunnah.com")}
+                          </a>
+                        </div>
+                        {hadith.text ? (
+                          <p className="text-sm text-foreground/90 leading-relaxed">
+                            {hadith.text}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            {t("No text available for this hadith.")}
+                          </p>
+                        )}
+                        {hadith.arabic && (
+                          <p className="mt-3 text-right text-lg leading-loose font-arabic" dir="rtl">
+                            {hadith.arabic}
+                          </p>
+                        )}
+                        <p className="mt-3 text-xs text-muted-foreground">
+                          {t("Source endpoint")}: {hadith.sourceUrl}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             <div ref={messagesEndRef} />
