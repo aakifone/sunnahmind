@@ -21,23 +21,58 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { z } from 'zod';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { z } from "zod";
 import { useFavorites } from "@/hooks/useFavorites";
+import {
+  getStoredHadithEdition,
+  listHadithEditions,
+  setStoredHadithEdition,
+  type HadithEdition,
+} from "@/services/hadithApi";
+import {
+  getStoredQuranEdition,
+  listQuranEditions,
+  setStoredQuranEdition,
+  type QuranEdition,
+} from "@/services/quranApi";
+import { fetchRelevantHadith, fetchRelevantVerses } from "@/services/relevantContent";
+import type { HadithCitationData, QuranCitationData } from "@/types/citations";
 
 const messageSchema = z.object({
-  content: z.string()
-    .min(1, 'Message cannot be empty')
-    .max(2000, 'Message must be less than 2000 characters')
-    .trim()
+  content: z.string().min(1, "Message cannot be empty").max(2000, "Message must be less than 2000 characters").trim(),
 });
 
+type CitationStatus = "loading" | "ready" | "empty" | "error" | undefined;
+
 interface Message {
+  id: string;
   role: "user" | "assistant";
   content: string;
-  citations?: any[];
-  quranCitations?: any[];
+  query?: string;
+  citations?: HadithCitationData[];
+  quranCitations?: QuranCitationData[];
+  hadithStatus?: CitationStatus;
+  quranStatus?: CitationStatus;
+  hadithError?: string;
+  quranError?: string;
   timestamp: Date;
 }
+
+interface ChatMessageRow {
+  role: string;
+  content: string;
+  citations: unknown;
+  quran_citations: unknown;
+  created_at: string;
+}
+
+const createMessageId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
 
 const Chat = () => {
   const navigate = useNavigate();
@@ -52,6 +87,7 @@ const Chat = () => {
   )}`;
   const [messages, setMessages] = useState<Message[]>([
     {
+      id: createMessageId(),
       role: "assistant",
       content: greetingMessage,
       timestamp: new Date(),
@@ -62,8 +98,12 @@ const Chat = () => {
   const [showSignUpDialog, setShowSignUpDialog] = useState(false);
   const [hasAskedFirstQuestion, setHasAskedFirstQuestion] = useState(false);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
+  const [hadithEditions, setHadithEditions] = useState<HadithEdition[]>([]);
+  const [quranEditions, setQuranEditions] = useState<QuranEdition[]>([]);
+  const [hadithEdition, setHadithEdition] = useState(getStoredHadithEdition());
+  const [quranEdition, setQuranEdition] = useState(getStoredQuranEdition());
+  const [editionError, setEditionError] = useState<string | null>(null);
 
-  // Favorites hook
   const { favorites, removeFavorite } = useFavorites();
 
   useEffect(() => {
@@ -71,7 +111,9 @@ const Chat = () => {
       setSession(session);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
@@ -84,11 +126,7 @@ const Chat = () => {
 
   useEffect(() => {
     setMessages((prev) => {
-      if (
-        prev.length === 1 &&
-        prev[0].role === "assistant" &&
-        prev[0].content.startsWith("السلام عليكم!")
-      ) {
+      if (prev.length === 1 && prev[0].role === "assistant" && prev[0].content.startsWith("السلام عليكم!")) {
         return [
           {
             ...prev[0],
@@ -99,6 +137,23 @@ const Chat = () => {
       return prev;
     });
   }, [greetingMessage]);
+
+  useEffect(() => {
+    const loadEditions = async () => {
+      try {
+        const [hadithData, quranData] = await Promise.all([listHadithEditions(), listQuranEditions()]);
+        setHadithEditions(hadithData);
+        setQuranEditions(quranData);
+        setEditionError(null);
+      } catch (error) {
+        console.error("Error loading editions:", error);
+        setEditionError(t("Failed to load editions list."));
+      }
+    };
+
+    loadEditions();
+  }, [t]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -128,15 +183,13 @@ const Chat = () => {
   };
 
   const saveMessage = async (conversationId: string, message: Message) => {
-    const { error } = await supabase
-      .from("chat_messages")
-      .insert({
-        conversation_id: conversationId,
-        role: message.role,
-        content: message.content,
-        citations: message.citations || null,
-        quran_citations: message.quranCitations || null,
-      });
+    const { error } = await supabase.from("chat_messages").insert({
+      conversation_id: conversationId,
+      role: message.role,
+      content: message.content,
+      citations: message.citations || null,
+      quran_citations: message.quranCitations || null,
+    });
 
     if (error) {
       console.error("Error saving message:", error);
@@ -159,13 +212,21 @@ const Chat = () => {
       return;
     }
 
-    const loadedMessages: Message[] = data.map((msg: any) => ({
-      role: msg.role as "user" | "assistant",
-      content: msg.content,
-      citations: msg.citations as any[],
-      quranCitations: msg.quran_citations as any[],
-      timestamp: new Date(msg.created_at),
-    }));
+    const loadedMessages: Message[] = (data as ChatMessageRow[]).map((msg) => {
+      const hadithCitations = (msg.citations as HadithCitationData[]) || [];
+      const quranCitations = (msg.quran_citations as QuranCitationData[]) || [];
+
+      return {
+        id: createMessageId(),
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+        citations: hadithCitations,
+        quranCitations,
+        hadithStatus: hadithCitations.length > 0 ? "ready" : undefined,
+        quranStatus: quranCitations.length > 0 ? "ready" : undefined,
+        timestamp: new Date(msg.created_at),
+      };
+    });
 
     setMessages(loadedMessages);
     setCurrentConversationId(conversationId);
@@ -175,11 +236,54 @@ const Chat = () => {
     setCurrentConversationId(null);
     setMessages([
       {
+        id: createMessageId(),
         role: "assistant",
         content: greetingMessage,
         timestamp: new Date(),
-      }
+      },
     ]);
+  };
+
+  const updateMessageById = (messageId: string, updates: Partial<Message>) => {
+    setMessages((prev) => prev.map((msg) => (msg.id === messageId ? { ...msg, ...updates } : msg)));
+  };
+
+  const loadHadithCitations = async (messageId: string, query: string) => {
+    updateMessageById(messageId, { hadithStatus: "loading", hadithError: undefined });
+
+    try {
+      const citations = await fetchRelevantHadith(query, hadithEdition);
+      updateMessageById(messageId, {
+        citations,
+        hadithStatus: citations.length > 0 ? "ready" : "empty",
+      });
+      return citations;
+    } catch (error) {
+      updateMessageById(messageId, {
+        hadithStatus: "error",
+        hadithError: t("Could not load hadith sources. Please retry."),
+      });
+      return [];
+    }
+  };
+
+  const loadQuranCitations = async (messageId: string, query: string) => {
+    updateMessageById(messageId, { quranStatus: "loading", quranError: undefined });
+
+    try {
+      const citations = await fetchRelevantVerses(query, quranEdition);
+      updateMessageById(messageId, {
+        quranCitations: citations,
+        quranStatus: citations.length > 0 ? "ready" : "empty",
+      });
+      return citations;
+    } catch (error) {
+      updateMessageById(messageId, {
+        quranStatus: "error",
+        quranError: t("Could not load Quran sources. Please retry."),
+      });
+      return [];
+    }
   };
 
   const handleSend = async () => {
@@ -190,7 +294,7 @@ const Chat = () => {
       toast({
         title: t("Invalid input"),
         description: t(validation.error.errors[0].message),
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -209,91 +313,103 @@ const Chat = () => {
     }
 
     const userMessage: Message = {
+      id: createMessageId(),
       role: "user",
       content: input,
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    
+    setMessages((prev) => [...prev, userMessage]);
+
     if (session?.user && conversationId) {
       await saveMessage(conversationId, userMessage);
     }
-    
+
+    const queryText = input;
     setInput("");
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: [
-              ...messages.map(msg => ({
-                role: msg.role,
-                content: msg.content
-              })),
-              { role: "user", content: input }
-            ],
-            language: {
-              code: language.code,
-              label: language.label,
-              translateCode: language.translateCode,
-            },
-          }),
-        }
-      );
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            ...messages.map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+            })),
+            { role: "user", content: queryText },
+          ],
+          language: {
+            code: language.code,
+            label: language.label,
+            translateCode: language.translateCode,
+          },
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to get response from service');
+        throw new Error("Failed to get response from service");
       }
 
       const data = await response.json();
-      
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.content,
-        citations: data.citations || [],
-        quranCitations: data.quranCitations || [],
+
+      const assistantMessageId = createMessageId();
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: "assistant",
+      content: data.content,
+      query: queryText,
+      citations: [],
+      quranCitations: [],
+      hadithStatus: "loading",
+      quranStatus: "loading",
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
-      
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      const [hadithCitations, quranCitations] = await Promise.all([
+        loadHadithCitations(assistantMessageId, queryText),
+        loadQuranCitations(assistantMessageId, queryText),
+      ]);
+
       if (session?.user && conversationId) {
-        await saveMessage(conversationId, assistantMessage);
+        await saveMessage(conversationId, {
+          ...assistantMessage,
+          citations: hadithCitations,
+          quranCitations,
+        });
 
         if (messages.length === 1) {
-          await updateConversationTitle(conversationId, input);
+          await updateConversationTitle(conversationId, queryText);
         }
       }
     } catch (error) {
       console.error("Error calling hadith-chat:", error);
-      
+
       toast({
         title: t("Error"),
         description: t("Failed to get response. Please try again."),
         variant: "destructive",
       });
-      
+
       const errorMessage: Message = {
+        id: createMessageId(),
         role: "assistant",
-        content: t(
-          "I apologize, but I encountered an error processing your request. Please try again.",
-        ),
+        content: t("I apologize, but I encountered an error processing your request. Please try again."),
         timestamp: new Date(),
       };
-      
-      setMessages(prev => [...prev, errorMessage]);
+
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -301,12 +417,31 @@ const Chat = () => {
 
   const updateConversationTitle = async (conversationId: string, userMessage: string) => {
     const title = userMessage.slice(0, 50) + (userMessage.length > 50 ? "..." : "");
-    await supabase
-      .from("conversations")
-      .update({ title })
-      .eq("id", conversationId);
-    
-    setRefreshSidebar(prev => prev + 1);
+    await supabase.from("conversations").update({ title }).eq("id", conversationId);
+
+    setRefreshSidebar((prev) => prev + 1);
+  };
+
+  const handleHadithEditionChange = (value: string) => {
+    setHadithEdition(value);
+    setStoredHadithEdition(value);
+  };
+
+  const handleQuranEditionChange = (value: string) => {
+    setQuranEdition(value);
+    setStoredQuranEdition(value);
+  };
+
+  const retryEditions = async () => {
+    try {
+      const [hadithData, quranData] = await Promise.all([listHadithEditions(), listQuranEditions()]);
+      setHadithEditions(hadithData);
+      setQuranEditions(quranData);
+      setEditionError(null);
+    } catch (error) {
+      console.error("Error loading editions:", error);
+      setEditionError(t("Failed to load editions list."));
+    }
   };
 
   return (
@@ -321,13 +456,15 @@ const Chat = () => {
           favorites={favorites}
           onRemoveFavorite={removeFavorite}
           onSelectFavorite={(hadith) => {
-            setMessages(prev => [...prev, {
-              role: "assistant",
-              content: `${t(
-                "Here's a hadith from your favorites:",
-              )}\n\n"${hadith.english}"\n\n— ${hadith.reference}`,
-              timestamp: new Date(),
-            }]);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: createMessageId(),
+                role: "assistant",
+                content: `${t("Here's a hadith from your favorites:")}\n\n"${hadith.english}"\n\n— ${hadith.reference}`,
+                timestamp: new Date(),
+              },
+            ]);
           }}
         />
       )}
@@ -335,13 +472,9 @@ const Chat = () => {
       <AlertDialog open={showSignUpDialog} onOpenChange={setShowSignUpDialog}>
         <AlertDialogContent className="paper-texture border-accent/20">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl gold-text">
-              {t("💫 Save Your Conversations")}
-            </AlertDialogTitle>
+            <AlertDialogTitle className="text-2xl gold-text">{t("💫 Save Your Conversations")}</AlertDialogTitle>
             <AlertDialogDescription className="text-base space-y-3 pt-2">
-              <p className="text-foreground/90">
-                {t("Sign up to unlock the full experience:")}
-              </p>
+              <p className="text-foreground/90">{t("Sign up to unlock the full experience:")}</p>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-accent mt-0.5">✓</span>
@@ -359,11 +492,9 @@ const Chat = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>
-              {t("Continue Without Saving")}
-            </AlertDialogCancel>
+            <AlertDialogCancel>{t("Continue Without Saving")}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate("/auth")}
               className="bg-accent hover:bg-accent/90 text-accent-foreground"
             >
               {t("Sign Up Now")}
@@ -373,15 +504,9 @@ const Chat = () => {
       </AlertDialog>
 
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <div className="border-b border-border/40 bg-card/50 backdrop-blur px-6 py-4">
           <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/')}
-              className="gap-2 hover:bg-accent/10"
-            >
+            <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-2 hover:bg-accent/10">
               <Home className="w-4 h-4" />
               <span>{t("Home")}</span>
             </Button>
@@ -392,7 +517,7 @@ const Chat = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate("/auth")}
                 className="gap-2 border-accent/30 hover:bg-accent/10"
               >
                 <LogIn className="w-4 h-4" />
@@ -402,20 +527,23 @@ const Chat = () => {
           </div>
         </div>
 
-        {/* Messages Area */}
         <div className="flex-1 overflow-y-auto px-4 py-6 paper-texture">
           <div className="max-w-4xl mx-auto">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
+            {messages.map((message) => (
+              <div key={message.id} className="animate-fade-in">
                 <ChatMessage
                   role={message.role}
                   content={message.content}
                   citations={message.citations}
                   quranCitations={message.quranCitations}
+                  hadithStatus={message.hadithStatus}
+                  quranStatus={message.quranStatus}
+                  hadithError={message.hadithError}
+                  quranError={message.quranError}
+                  onRetryHadith={
+                    message.query ? () => loadHadithCitations(message.id, message.query) : undefined
+                  }
+                  onRetryQuran={message.query ? () => loadQuranCitations(message.id, message.query) : undefined}
                   timestamp={message.timestamp}
                 />
               </div>
@@ -427,12 +555,8 @@ const Chat = () => {
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <Sparkles className="w-5 h-5 animate-spin text-accent" />
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">
-                        {t("Searching authentic sources...")}
-                      </span>
-                      <span className="text-xs opacity-70">
-                        {t("Finding hadiths and Quran verses")}
-                      </span>
+                      <span className="text-sm font-medium">{t("Searching authentic sources...")}</span>
+                      <span className="text-xs opacity-70">{t("Finding hadiths and Quran verses")}</span>
                     </div>
                   </div>
                 </div>
@@ -442,9 +566,8 @@ const Chat = () => {
           </div>
         </div>
 
-        {/* Input Area */}
         <div className="border-t border-border/40 bg-card/50 backdrop-blur">
-          <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="max-w-4xl mx-auto px-4 py-4 space-y-3">
             <div className="flex gap-2 items-end">
               <div className="flex-1 relative">
                 <Textarea
@@ -466,9 +589,52 @@ const Chat = () => {
               </Button>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">{t("Hadith edition")}</p>
+                <Select value={hadithEdition} onValueChange={handleHadithEditionChange}>
+                  <SelectTrigger className="bg-background/70">
+                    <SelectValue placeholder={t("Select an edition")} />
+                  </SelectTrigger>
+                  <SelectContent side="top" position="popper">
+                    {hadithEditions.map((edition) => (
+                      <SelectItem key={edition.name} value={edition.name}>
+                        {edition.englishName || edition.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">{t("Quran edition")}</p>
+                <Select value={quranEdition} onValueChange={handleQuranEditionChange}>
+                  <SelectTrigger className="bg-background/70">
+                    <SelectValue placeholder={t("Select an edition")} />
+                  </SelectTrigger>
+                  <SelectContent side="top" position="popper">
+                    {quranEditions.map((edition) => (
+                      <SelectItem key={edition.name} value={edition.name}>
+                        {edition.englishName || edition.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {editionError && (
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span>{editionError}</span>
+                <Button variant="outline" size="sm" onClick={retryEditions}>
+                  {t("Retry")}
+                </Button>
+              </div>
+            )}
+
             <p className="text-xs text-muted-foreground mt-2 text-center">
               {t(
-                "Authentic sources from sunnah.com & quran.com • Not for issuing fatwas",
+                "Sources from fawazahmed0 hadith-api & quran-api • Links open on sunnah.com and quran.com • Not for issuing fatwas",
               )}
             </p>
           </div>
