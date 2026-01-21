@@ -21,11 +21,6 @@ export interface HadithSearchResult {
   sunnahUrl?: string;
 }
 
-interface HadithSectionSummary {
-  id: string;
-  title?: string;
-}
-
 const buildUrls = (path: string): string[] => [
   `${PRIMARY_BASE}${path}.min.json`,
   `${PRIMARY_BASE}${path}.json`,
@@ -84,15 +79,6 @@ const extractMetadata = (data: unknown): Record<string, unknown> => {
   return {};
 };
 
-const extractSectionArray = (data: unknown): unknown[] => {
-  if (!isRecord(data)) return [];
-  if (Array.isArray(data.sections)) return data.sections as unknown[];
-  if (Array.isArray(data.section)) return data.section as unknown[];
-  if (Array.isArray(data.chapters)) return data.chapters as unknown[];
-  if (Array.isArray(data.books)) return data.books as unknown[];
-  return [];
-};
-
 const normalizeHadithItem = (
   item: unknown,
   metadata: Record<string, unknown>,
@@ -126,32 +112,6 @@ const normalizeHadithItem = (
     sunnahUrl: buildSunnahLink(editionName, hadithNumber ?? ""),
   };
 };
-
-const normalizeSections = (data: unknown): HadithSectionSummary[] =>
-  extractSectionArray(data)
-    .map((item) => {
-      if (!isRecord(item)) return null;
-      const id = getNestedString(item, [
-        "section",
-        "section_id",
-        "id",
-        "number",
-        "sectionNumber",
-        "chapter_id",
-        "book_id",
-      ]);
-      if (!id) return null;
-      const title = getNestedString(item, [
-        "title",
-        "name",
-        "chapter",
-        "book",
-        "section_title",
-        "sectionTitle",
-      ]);
-      return { id, title };
-    })
-    .filter((item): item is HadithSectionSummary => Boolean(item));
 
 const normalizeEditions = (data: unknown): HadithEditionSummary[] => {
   const editionItems: unknown[] = Array.isArray(data)
@@ -218,119 +178,45 @@ export const getHadithSection = async (
 export const getHadithApiInfo = async (): Promise<FetchResult<unknown>> =>
   fetchJsonWithFallback<unknown>(buildUrls("info"));
 
-const buildKeywords = (query: string): string[] => {
-  const stopWords = new Set([
-    "the",
-    "and",
-    "for",
-    "with",
-    "that",
-    "this",
-    "you",
-    "your",
-    "about",
-    "from",
-    "are",
-    "was",
-    "were",
-    "his",
-    "her",
-    "their",
-    "them",
-    "but",
-    "not",
-    "what",
-    "when",
-    "how",
-    "why",
-    "who",
-    "which",
-    "hadith",
-    "quran",
-    "sunnah",
-  ]);
-  return query
-    .toLowerCase()
-    .split(/\W+/)
-    .map((term) => term.trim())
-    .filter((term) => term.length > 2 && !stopWords.has(term));
-};
-
-const scoreText = (text: string, keywords: string[]): number => {
-  let score = 0;
-  for (const keyword of keywords) {
-    if (!keyword) continue;
-    const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\b`, "gi");
-    const matches = text.match(regex);
-    if (matches) {
-      score += matches.length;
-    }
-  }
-  return score;
-};
-
-const scoreHadith = (hadith: HadithSearchResult, keywords: string[]): number => {
-  const parts = [hadith.text, hadith.section, hadith.book].filter(Boolean).join(" ");
-  if (!parts) return 0;
-  return scoreText(parts.toLowerCase(), keywords);
-};
-
-const determineTargetCount = (keywordCount: number): number => {
-  const base = 3 + Math.min(5, Math.ceil(keywordCount / 2));
-  return Math.min(8, Math.max(3, base));
-};
-
-export const fetchRelevantHadiths = async (
+export const fetchRelevantHadith = async (
   query: string,
   editionName: string,
-  maxSampleCount = 80,
+  maxSampleCount = 60,
+  maxResults = 8,
 ): Promise<HadithSearchResult[]> => {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return [];
 
-  const keywords = buildKeywords(trimmedQuery);
-  if (keywords.length === 0) return [];
+  const keywords = trimmedQuery
+    .toLowerCase()
+    .split(/\W+/)
+    .map((term) => term.trim())
+    .filter(Boolean);
 
-  const targetCount = determineTargetCount(keywords.length);
-  const results: HadithSearchResult[] = [];
-  const scored = new Map<string, { score: number; hadith: HadithSearchResult }>();
-
-  const addCandidates = (candidates: HadithSearchResult[]) => {
-    for (const hadith of candidates) {
-      const score = scoreHadith(hadith, keywords);
-      if (score <= 0) continue;
-      const key = `${hadith.editionName}-${hadith.hadithNumber ?? hadith.text ?? ""}`;
-      const existing = scored.get(key);
-      if (!existing || score > existing.score) {
-        scored.set(key, { score, hadith });
-      }
-    }
+  const matchesQuery = (text?: string) => {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+    return keywords.some((term) => lower.includes(term));
   };
 
+  const results: HadithSearchResult[] = [];
+
   try {
-    const editionResult = await getHadithEdition(editionName);
-    const sections = normalizeSections(editionResult.data);
-    const sectionCandidates = sections
-      .map((section) => ({
-        section,
-        score: section.title ? scoreText(section.title.toLowerCase(), keywords) : 0,
-      }))
-      .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 4)
-      .map((item) => item.section);
+    const sectionResult = await getHadithSection(editionName, 1);
+    const metadata = extractMetadata(sectionResult.data);
+    const hadiths = extractHadithArray(sectionResult.data)
+      .map((item) => normalizeHadithItem(item, metadata, editionName, sectionResult.sourceUrl))
+      .filter((item): item is HadithSearchResult => Boolean(item));
 
-    const fetchSections = sectionCandidates.length > 0 ? sectionCandidates : sections.slice(0, 3);
-    const sectionResults = await Promise.all(
-      fetchSections.map((section) => getHadithSection(editionName, section.id)),
-    );
+    for (const hadith of hadiths) {
+      if (matchesQuery(hadith.text)) {
+        results.push(hadith);
+        if (results.length >= maxResults) return results;
+      }
+    }
 
-    for (const sectionResult of sectionResults) {
-      const metadata = extractMetadata(sectionResult.data);
-      const hadiths = extractHadithArray(sectionResult.data)
-        .map((item) => normalizeHadithItem(item, metadata, editionName, sectionResult.sourceUrl))
-        .filter((item): item is HadithSearchResult => Boolean(item));
-      addCandidates(hadiths);
+    if (results.length > 0) {
+      return results;
     }
   } catch {
     // fall through to hadith number fetch
@@ -349,7 +235,7 @@ export const fetchRelevantHadiths = async (
   };
 
   const batchSize = 6;
-  for (let i = 1; i <= maxSampleCount; i += batchSize) {
+  for (let i = 1; i <= maxSampleCount && results.length < maxResults; i += batchSize) {
     const batchNumbers = Array.from({ length: batchSize }, (_, index) => i + index).filter(
       (number) => number <= maxSampleCount,
     );
@@ -357,16 +243,16 @@ export const fetchRelevantHadiths = async (
       batchNumbers.map((number) => fetchHadithByNumberSafe(number)),
     );
     const flattened = batchResults.flat();
-    addCandidates(flattened);
 
-    if (scored.size >= targetCount) break;
+    for (const hadith of flattened) {
+      if (matchesQuery(hadith.text)) {
+        results.push(hadith);
+        if (results.length >= maxResults) return results;
+      }
+    }
   }
 
-  const sorted = Array.from(scored.values())
-    .sort((a, b) => b.score - a.score)
-    .map((item) => item.hadith);
-
-  return sorted.slice(0, targetCount);
+  return results;
 };
 
 const SUNNAH_SLUGS: Record<string, string> = {
