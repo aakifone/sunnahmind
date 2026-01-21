@@ -37,6 +37,7 @@ import {
   HadithEditionSummary,
   HadithSearchResult,
   listHadithEditions,
+  buildSunnahLink,
 } from "@/services/hadithApi";
 
 const messageSchema = z.object({
@@ -147,8 +148,11 @@ const Chat = () => {
       setEditionError(null);
       try {
         const editions = await listHadithEditions();
-        const sorted = [...editions].sort((a, b) =>
-          (a.collection ?? a.name).localeCompare(b.collection ?? b.name),
+        const sunnahEditions = editions.filter(
+          (edition) => buildSunnahLink(edition.name, 1) !== null,
+        );
+        const sorted = [...(sunnahEditions.length > 0 ? sunnahEditions : editions)].sort(
+          (a, b) => (a.collection ?? a.name).localeCompare(b.collection ?? b.name),
         );
         setEditionOptions(sorted);
         setEditionStatus("idle");
@@ -223,7 +227,7 @@ const Chat = () => {
       setHadithError(null);
 
       try {
-        const results = await fetchRelevantHadith(trimmedQuery, selectedEdition);
+        const results = await fetchRelevantHadith(trimmedQuery, selectedEdition, 24, 4, 2200);
         if (results.length === 0) {
           setHadithStatus("empty");
           setHadithResults([]);
@@ -232,14 +236,16 @@ const Chat = () => {
           setHadithResults(results);
         }
 
-        const citations = results.map((hadith) => ({
-          collection: getEditionLabel(hadith.editionName),
-          hadithNumber: hadith.hadithNumber ?? t("N/A"),
-          url: hadith.sunnahUrl ?? hadith.sourceUrl,
-          translation: hadith.text,
-          arabic: hadith.arabic,
-          sourceUrl: hadith.sourceUrl,
-        }));
+        const citations = results
+          .map((hadith) => ({
+            collection: getEditionLabel(hadith.editionName),
+            hadithNumber: hadith.hadithNumber ?? t("N/A"),
+            url: hadith.sunnahUrl ?? hadith.sourceUrl,
+            translation: hadith.text,
+            arabic: hadith.arabic,
+            sourceUrl: hadith.sourceUrl,
+          }))
+          .filter((citation) => Boolean(citation.url));
 
         if (citations.length > 0) {
           pendingHadithCitations.current.set(requestId, citations);
@@ -567,34 +573,11 @@ const Chat = () => {
             </Button>
             <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
             <div className="flex items-center gap-3">
-              <div className="flex flex-col items-end gap-1">
+              <div className="text-right">
                 <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
                   {t("Hadith Edition")}
                 </span>
-                <Select
-                  value={selectedEdition}
-                  onValueChange={setSelectedEdition}
-                  disabled={editionStatus === "loading" || editionStatus === "error"}
-                >
-                  <SelectTrigger className="h-8 w-[200px] text-xs">
-                    <SelectValue placeholder={t("Select edition")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {editionOptions.map((edition) => (
-                      <SelectItem key={edition.name} value={edition.name}>
-                        {edition.collection ?? edition.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {editionStatus === "loading" && (
-                  <span className="text-[10px] text-muted-foreground">
-                    {t("Loading editions...")}
-                  </span>
-                )}
-                {editionStatus === "error" && (
-                  <span className="text-[10px] text-destructive">{editionError}</span>
-                )}
+                <p className="text-xs text-foreground/80">{selectedEditionLabel}</p>
               </div>
               {session?.user ? (
                 <AccountDropdown userEmail={session.user.email || ""} />
@@ -684,10 +667,13 @@ const Chat = () => {
                   onValueChange={setSelectedEdition}
                   disabled={editionStatus === "loading" || editionStatus === "error"}
                 >
-                  <SelectTrigger className="h-7 w-[170px] text-xs" aria-label={t("Hadith Edition")}>
+                  <SelectTrigger
+                    className="h-7 w-[150px] text-xs"
+                    aria-label={t("Hadith Edition")}
+                  >
                     <SelectValue placeholder={t("Select edition")} />
                   </SelectTrigger>
-                  <SelectContent position="popper" side="top" align="start">
+                  <SelectContent position="popper" side="top" align="start" sideOffset={8}>
                     {editionOptions.map((edition) => (
                       <SelectItem key={edition.name} value={edition.name}>
                         {edition.collection ?? edition.name}
