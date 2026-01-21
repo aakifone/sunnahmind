@@ -181,8 +181,9 @@ export const getHadithApiInfo = async (): Promise<FetchResult<unknown>> =>
 export const fetchRelevantHadith = async (
   query: string,
   editionName: string,
-  maxSampleCount = 60,
-  maxResults = 8,
+  maxSampleCount = 30,
+  maxResults = 5,
+  maxDurationMs = 2500,
 ): Promise<HadithSearchResult[]> => {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return [];
@@ -200,15 +201,19 @@ export const fetchRelevantHadith = async (
   };
 
   const results: HadithSearchResult[] = [];
+  const startTime = Date.now();
+  const hasTimedOut = () => Date.now() - startTime > maxDurationMs;
 
   try {
     const sectionResult = await getHadithSection(editionName, 1);
+    if (hasTimedOut()) return results;
     const metadata = extractMetadata(sectionResult.data);
     const hadiths = extractHadithArray(sectionResult.data)
       .map((item) => normalizeHadithItem(item, metadata, editionName, sectionResult.sourceUrl))
       .filter((item): item is HadithSearchResult => Boolean(item));
 
     for (const hadith of hadiths) {
+      if (hasTimedOut()) return results;
       if (matchesQuery(hadith.text)) {
         results.push(hadith);
         if (results.length >= maxResults) return results;
@@ -225,6 +230,7 @@ export const fetchRelevantHadith = async (
   const fetchHadithByNumberSafe = async (number: number): Promise<HadithSearchResult[]> => {
     try {
       const hadithResult = await getHadithByNumber(editionName, number);
+      if (hasTimedOut()) return [];
       const metadata = extractMetadata(hadithResult.data);
       return extractHadithArray(hadithResult.data)
         .map((item) => normalizeHadithItem(item, metadata, editionName, hadithResult.sourceUrl))
@@ -234,8 +240,9 @@ export const fetchRelevantHadith = async (
     }
   };
 
-  const batchSize = 6;
+  const batchSize = 4;
   for (let i = 1; i <= maxSampleCount && results.length < maxResults; i += batchSize) {
+    if (hasTimedOut()) return results;
     const batchNumbers = Array.from({ length: batchSize }, (_, index) => i + index).filter(
       (number) => number <= maxSampleCount,
     );
