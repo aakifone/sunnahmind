@@ -122,13 +122,24 @@ const Chat = () => {
     return Array.from(unique.values()).sort((a, b) => a.localeCompare(b));
   }, [editionOptions]);
 
+  const getEditionLanguage = useCallback((edition: HadithEditionSummary) => {
+    if (edition.language) return edition.language;
+    if (edition.name.startsWith("eng-")) return "english";
+    if (edition.name.startsWith("ara-")) return "arabic";
+    if (edition.name.startsWith("urd-")) return "urdu";
+    if (edition.name.startsWith("ben-")) return "bengali";
+    if (edition.name.startsWith("ind-")) return "indonesian";
+    return "";
+  }, []);
+
   const languageOptions = useMemo(() => {
     if (!selectedCollection) return [];
     const langs = editionOptions
       .filter((edition) => (edition.collection ?? edition.name) === selectedCollection)
-      .map((edition) => edition.language ?? "unknown");
+      .map((edition) => getEditionLanguage(edition))
+      .filter((language) => Boolean(language));
     return Array.from(new Set(langs)).sort((a, b) => a.localeCompare(b));
-  }, [editionOptions, selectedCollection]);
+  }, [editionOptions, getEditionLanguage, selectedCollection]);
 
   const getEditionLabel = useCallback(
     (editionName: string) => {
@@ -174,7 +185,7 @@ const Chat = () => {
           ?? sorted[0];
         if (selected) {
           setSelectedCollection(selected.collection ?? selected.name);
-          setSelectedLanguage(selected.language ?? "unknown");
+          setSelectedLanguage(getEditionLanguage(selected));
         }
       } catch (error) {
         console.error("Failed to load hadith editions:", error);
@@ -193,29 +204,17 @@ const Chat = () => {
   }, [selectedEdition]);
 
   useEffect(() => {
-    if (!selectedCollection || !selectedLanguage) return;
-    const match = editionOptions.find(
-      (edition) =>
-        (edition.collection ?? edition.name) === selectedCollection
-        && (edition.language ?? "unknown") === selectedLanguage,
-    );
-    if (match && match.name !== selectedEdition) {
-      setSelectedEdition(match.name);
-    }
-  }, [editionOptions, selectedCollection, selectedLanguage, selectedEdition]);
-
-  useEffect(() => {
     const selected = editionOptions.find((edition) => edition.name === selectedEdition);
     if (!selected) return;
     const nextCollection = selected.collection ?? selected.name;
-    const nextLanguage = selected.language ?? "unknown";
+    const nextLanguage = getEditionLanguage(selected);
     if (nextCollection !== selectedCollection) {
       setSelectedCollection(nextCollection);
     }
     if (nextLanguage !== selectedLanguage) {
       setSelectedLanguage(nextLanguage);
     }
-  }, [editionOptions, selectedEdition, selectedCollection, selectedLanguage]);
+  }, [editionOptions, getEditionLanguage, selectedEdition, selectedCollection, selectedLanguage]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -699,13 +698,22 @@ const Chat = () => {
                   value={selectedCollection}
                   onValueChange={(value) => {
                     setSelectedCollection(value);
-                    const languages = editionOptions
-                      .filter((edition) => (edition.collection ?? edition.name) === value)
-                      .map((edition) => edition.language ?? "unknown");
+                    const editionsForCollection = editionOptions.filter(
+                      (edition) => (edition.collection ?? edition.name) === value,
+                    );
+                    const languages = editionsForCollection
+                      .map((edition) => getEditionLanguage(edition))
+                      .filter(Boolean);
                     const nextLanguage = languages.includes(selectedLanguage)
                       ? selectedLanguage
-                      : languages[0] ?? "unknown";
+                      : languages[0] ?? "";
                     setSelectedLanguage(nextLanguage);
+                    const match = editionsForCollection.find(
+                      (edition) => getEditionLanguage(edition) === nextLanguage,
+                    );
+                    if (match) {
+                      setSelectedEdition(match.name);
+                    }
                   }}
                   disabled={editionStatus === "loading" || editionStatus === "error"}
                 >
@@ -722,7 +730,17 @@ const Chat = () => {
                 </Select>
                 <Select
                   value={selectedLanguage}
-                  onValueChange={setSelectedLanguage}
+                  onValueChange={(value) => {
+                    setSelectedLanguage(value);
+                    const match = editionOptions.find(
+                      (edition) =>
+                        (edition.collection ?? edition.name) === selectedCollection
+                        && getEditionLanguage(edition) === value,
+                    );
+                    if (match) {
+                      setSelectedEdition(match.name);
+                    }
+                  }}
                   disabled={
                     editionStatus === "loading"
                     || editionStatus === "error"
