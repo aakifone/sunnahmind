@@ -122,15 +122,42 @@ const Chat = () => {
     return Array.from(unique.values()).sort((a, b) => a.localeCompare(b));
   }, [editionOptions]);
 
-  const getEditionLanguage = useCallback((edition: HadithEditionSummary) => {
-    if (edition.language) return edition.language;
-    if (edition.name.startsWith("eng-")) return "english";
-    if (edition.name.startsWith("ara-")) return "arabic";
-    if (edition.name.startsWith("urd-")) return "urdu";
-    if (edition.name.startsWith("ben-")) return "bengali";
-    if (edition.name.startsWith("ind-")) return "indonesian";
-    return "";
+  const normalizeLanguageLabel = useCallback((value?: string) => {
+    if (!value) return "";
+    const normalized = value.trim().toLowerCase();
+    const map: Record<string, string> = {
+      en: "english",
+      eng: "english",
+      english: "english",
+      ar: "arabic",
+      ara: "arabic",
+      arabic: "arabic",
+      ur: "urdu",
+      urd: "urdu",
+      urdu: "urdu",
+      bn: "bengali",
+      ben: "bengali",
+      bengali: "bengali",
+      id: "indonesian",
+      ind: "indonesian",
+      indonesian: "indonesian",
+    };
+    return map[normalized] ?? value;
   }, []);
+
+  const getEditionLanguage = useCallback(
+    (edition: HadithEditionSummary) => {
+      const fromMetadata = normalizeLanguageLabel(edition.language);
+      if (fromMetadata) return fromMetadata;
+      if (edition.name.startsWith("eng-")) return "english";
+      if (edition.name.startsWith("ara-")) return "arabic";
+      if (edition.name.startsWith("urd-")) return "urdu";
+      if (edition.name.startsWith("ben-")) return "bengali";
+      if (edition.name.startsWith("ind-")) return "indonesian";
+      return "other";
+    },
+    [normalizeLanguageLabel],
+  );
 
   const languageOptions = useMemo(() => {
     if (!selectedCollection) return [];
@@ -215,6 +242,13 @@ const Chat = () => {
       setSelectedLanguage(nextLanguage);
     }
   }, [editionOptions, getEditionLanguage, selectedEdition, selectedCollection, selectedLanguage]);
+
+  useEffect(() => {
+    if (!selectedCollection) return;
+    if (selectedLanguage) return;
+    if (languageOptions.length === 0) return;
+    setSelectedLanguage(languageOptions[0]);
+  }, [languageOptions, selectedCollection, selectedLanguage]);
 
   useEffect(() => {
     setMessages((prev) => {
