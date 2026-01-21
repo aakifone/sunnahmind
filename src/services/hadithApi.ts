@@ -158,7 +158,17 @@ const normalizeEditions = (data: unknown): HadithEditionSummary[] => {
     ? data
     : isRecord(data) && Array.isArray(data.editions)
       ? (data.editions as unknown[])
-      : [];
+      : isRecord(data) && isRecord(data.editions)
+        ? Object.entries(data.editions).map(([key, value]) => ({
+            name: key,
+            ...(isRecord(value) ? value : {}),
+          }))
+        : isRecord(data)
+          ? Object.entries(data).map(([key, value]) => ({
+              name: key,
+              ...(isRecord(value) ? value : {}),
+            }))
+          : [];
 
   return editionItems
     .map((item) => {
