@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { defaultHadithEdition } from "@/services/contentDefaults";
 import {
-  fetchRelevantHadith,
+  fetchRelevantHadiths,
   HadithEditionSummary,
   HadithSearchResult,
   listHadithEditions,
@@ -223,7 +223,7 @@ const Chat = () => {
       setHadithError(null);
 
       try {
-        const results = await fetchRelevantHadith(trimmedQuery, selectedEdition);
+        const results = await fetchRelevantHadiths(trimmedQuery, selectedEdition);
         if (results.length === 0) {
           setHadithStatus("empty");
           setHadithResults([]);
@@ -421,7 +421,7 @@ const Chat = () => {
       const assistantMessage: Message = {
         role: "assistant",
         content: data.content,
-        citations: data.citations || [],
+        citations: [],
         quranCitations: data.quranCitations || [],
         timestamp: new Date(),
         requestId,
@@ -567,35 +567,6 @@ const Chat = () => {
             </Button>
             <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
             <div className="flex items-center gap-3">
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {t("Hadith Edition")}
-                </span>
-                <Select
-                  value={selectedEdition}
-                  onValueChange={setSelectedEdition}
-                  disabled={editionStatus === "loading" || editionStatus === "error"}
-                >
-                  <SelectTrigger className="h-8 w-[200px] text-xs">
-                    <SelectValue placeholder={t("Select edition")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {editionOptions.map((edition) => (
-                      <SelectItem key={edition.name} value={edition.name}>
-                        {edition.collection ?? edition.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {editionStatus === "loading" && (
-                  <span className="text-[10px] text-muted-foreground">
-                    {t("Loading editions...")}
-                  </span>
-                )}
-                {editionStatus === "error" && (
-                  <span className="text-[10px] text-destructive">{editionError}</span>
-                )}
-              </div>
               {session?.user ? (
                 <AccountDropdown userEmail={session.user.email || ""} />
               ) : (
@@ -725,7 +696,9 @@ const Chat = () => {
                     </>
                   )}
                   {hadithStatus === "empty" && (
-                    <span>{t("No relevant hadiths found in the sampled set.")}</span>
+                    <span>
+                      {t("No matching hadiths found. Please try rephrasing your question.")}
+                    </span>
                   )}
                   {hadithStatus === "success" && hadithResults.length > 0 && (
                     <span>
