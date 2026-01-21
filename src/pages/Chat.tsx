@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { defaultHadithEdition } from "@/services/contentDefaults";
 import {
-  fetchRelevantHadith,
+  fetchRelevantHadiths,
   HadithEditionSummary,
   HadithSearchResult,
   listHadithEditions,
@@ -97,6 +97,8 @@ const Chat = () => {
     }
     return window.localStorage.getItem("hadith-selected-edition") || defaultHadithEdition;
   });
+  const [selectedCollection, setSelectedCollection] = useState<string>("");
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("");
   const [hadithResults, setHadithResults] = useState<HadithSearchResult[]>([]);
   const [hadithStatus, setHadithStatus] = useState<
     "idle" | "loading" | "error" | "empty" | "success"
@@ -109,12 +111,35 @@ const Chat = () => {
   // Favorites hook
   const { favorites, removeFavorite } = useFavorites();
 
-  const selectedEditionLabel = useMemo(() => {
-    const selected = editionOptions.find((edition) => edition.name === selectedEdition);
-    if (!selected) return selectedEdition;
-    const collectionLabel = selected.collection ?? selected.name;
-    return selected.language ? `${collectionLabel} (${selected.language})` : collectionLabel;
-  }, [editionOptions, selectedEdition]);
+  const collectionOptions = useMemo(() => {
+    const unique = new Map<string, string>();
+    editionOptions.forEach((edition) => {
+      const key = edition.collection ?? edition.name;
+      if (!unique.has(key)) {
+        unique.set(key, key);
+      }
+    });
+    return Array.from(unique.values()).sort((a, b) => a.localeCompare(b));
+  }, [editionOptions]);
+
+  const getEditionLanguage = useCallback((edition: HadithEditionSummary) => {
+    if (edition.language) return edition.language;
+    if (edition.name.startsWith("eng-")) return "english";
+    if (edition.name.startsWith("ara-")) return "arabic";
+    if (edition.name.startsWith("urd-")) return "urdu";
+    if (edition.name.startsWith("ben-")) return "bengali";
+    if (edition.name.startsWith("ind-")) return "indonesian";
+    return "";
+  }, []);
+
+  const languageOptions = useMemo(() => {
+    if (!selectedCollection) return [];
+    const langs = editionOptions
+      .filter((edition) => (edition.collection ?? edition.name) === selectedCollection)
+      .map((edition) => getEditionLanguage(edition))
+      .filter((language) => Boolean(language));
+    return Array.from(new Set(langs)).sort((a, b) => a.localeCompare(b));
+  }, [editionOptions, getEditionLanguage, selectedCollection]);
 
   const getEditionLabel = useCallback(
     (editionName: string) => {
@@ -156,6 +181,12 @@ const Chat = () => {
         if (!sorted.some((edition) => edition.name === selectedEdition)) {
           setSelectedEdition(sorted[0]?.name ?? defaultHadithEdition);
         }
+        const selected = sorted.find((edition) => edition.name === selectedEdition)
+          ?? sorted[0];
+        if (selected) {
+          setSelectedCollection(selected.collection ?? selected.name);
+          setSelectedLanguage(getEditionLanguage(selected));
+        }
       } catch (error) {
         console.error("Failed to load hadith editions:", error);
         setEditionStatus("error");
@@ -171,6 +202,19 @@ const Chat = () => {
       window.localStorage.setItem("hadith-selected-edition", selectedEdition);
     }
   }, [selectedEdition]);
+
+  useEffect(() => {
+    const selected = editionOptions.find((edition) => edition.name === selectedEdition);
+    if (!selected) return;
+    const nextCollection = selected.collection ?? selected.name;
+    const nextLanguage = getEditionLanguage(selected);
+    if (nextCollection !== selectedCollection) {
+      setSelectedCollection(nextCollection);
+    }
+    if (nextLanguage !== selectedLanguage) {
+      setSelectedLanguage(nextLanguage);
+    }
+  }, [editionOptions, getEditionLanguage, selectedEdition, selectedCollection, selectedLanguage]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -223,7 +267,7 @@ const Chat = () => {
       setHadithError(null);
 
       try {
-        const results = await fetchRelevantHadith(trimmedQuery, selectedEdition);
+        const results = await fetchRelevantHadiths(trimmedQuery, selectedEdition);
         if (results.length === 0) {
           setHadithStatus("empty");
           setHadithResults([]);
@@ -421,7 +465,7 @@ const Chat = () => {
       const assistantMessage: Message = {
         role: "assistant",
         content: data.content,
-        citations: data.citations || [],
+        citations: [],
         quranCitations: data.quranCitations || [],
         timestamp: new Date(),
         requestId,
@@ -567,35 +611,6 @@ const Chat = () => {
             </Button>
             <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
             <div className="flex items-center gap-3">
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {t("Hadith Edition")}
-                </span>
-                <Select
-                  value={selectedEdition}
-                  onValueChange={setSelectedEdition}
-                  disabled={editionStatus === "loading" || editionStatus === "error"}
-                >
-                  <SelectTrigger className="h-8 w-[200px] text-xs">
-                    <SelectValue placeholder={t("Select edition")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {editionOptions.map((edition) => (
-                      <SelectItem key={edition.name} value={edition.name}>
-                        {edition.collection ?? edition.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {editionStatus === "loading" && (
-                  <span className="text-[10px] text-muted-foreground">
-                    {t("Loading editions...")}
-                  </span>
-                )}
-                {editionStatus === "error" && (
-                  <span className="text-[10px] text-destructive">{editionError}</span>
-                )}
-              </div>
               {session?.user ? (
                 <AccountDropdown userEmail={session.user.email || ""} />
               ) : (
@@ -680,24 +695,69 @@ const Chat = () => {
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <Select
-                  value={selectedEdition}
-                  onValueChange={setSelectedEdition}
+                  value={selectedCollection}
+                  onValueChange={(value) => {
+                    setSelectedCollection(value);
+                    const editionsForCollection = editionOptions.filter(
+                      (edition) => (edition.collection ?? edition.name) === value,
+                    );
+                    const languages = editionsForCollection
+                      .map((edition) => getEditionLanguage(edition))
+                      .filter(Boolean);
+                    const nextLanguage = languages.includes(selectedLanguage)
+                      ? selectedLanguage
+                      : languages[0] ?? "";
+                    setSelectedLanguage(nextLanguage);
+                    const match = editionsForCollection.find(
+                      (edition) => getEditionLanguage(edition) === nextLanguage,
+                    );
+                    if (match) {
+                      setSelectedEdition(match.name);
+                    }
+                  }}
                   disabled={editionStatus === "loading" || editionStatus === "error"}
                 >
-                  <SelectTrigger className="h-7 w-[170px] text-xs" aria-label={t("Hadith Edition")}>
+                  <SelectTrigger className="h-7 w-[190px] text-xs" aria-label={t("Hadith Edition")}>
                     <SelectValue placeholder={t("Select edition")} />
                   </SelectTrigger>
                   <SelectContent position="popper" side="top" align="start">
-                    {editionOptions.map((edition) => (
-                      <SelectItem key={edition.name} value={edition.name}>
-                        {edition.collection ?? edition.name}
+                    {collectionOptions.map((collection) => (
+                      <SelectItem key={collection} value={collection}>
+                        {collection}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <span className="text-xs text-muted-foreground">
-                  {t("Edition")}: {selectedEditionLabel}
-                </span>
+                <Select
+                  value={selectedLanguage}
+                  onValueChange={(value) => {
+                    setSelectedLanguage(value);
+                    const match = editionOptions.find(
+                      (edition) =>
+                        (edition.collection ?? edition.name) === selectedCollection
+                        && getEditionLanguage(edition) === value,
+                    );
+                    if (match) {
+                      setSelectedEdition(match.name);
+                    }
+                  }}
+                  disabled={
+                    editionStatus === "loading"
+                    || editionStatus === "error"
+                    || languageOptions.length === 0
+                  }
+                >
+                  <SelectTrigger className="h-7 w-[120px] text-xs" aria-label={t("Language")}>
+                    <SelectValue placeholder={t("Language")} />
+                  </SelectTrigger>
+                  <SelectContent position="popper" side="top" align="start">
+                    {languageOptions.map((languageOption) => (
+                      <SelectItem key={languageOption} value={languageOption}>
+                        {languageOption}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {editionStatus === "loading" && (
                   <span className="text-xs text-muted-foreground">
                     {t("Loading editions...")}
@@ -709,11 +769,6 @@ const Chat = () => {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground text-center">
-                {t(
-                  "Authentic sources from sunnah.com & quran.com • Not for issuing fatwas",
-                )}
-              </p>
             </div>
             {hadithStatus !== "idle" && (
               <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -725,11 +780,8 @@ const Chat = () => {
                     </>
                   )}
                   {hadithStatus === "empty" && (
-                    <span>{t("No relevant hadiths found in the sampled set.")}</span>
-                  )}
-                  {hadithStatus === "success" && hadithResults.length > 0 && (
                     <span>
-                      {t("Added")} {hadithResults.length} {t("hadith citations")}
+                      {t("No matching hadiths found. Please try rephrasing your question.")}
                     </span>
                   )}
                   {hadithStatus === "error" && (
