@@ -2,15 +2,7 @@ import { ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuranCitation, { QuranCitationData } from "@/components/QuranCitation";
 import { useTranslate } from "@/hooks/useTranslate";
-
-interface Citation {
-  collection: string;
-  hadithNumber: string;
-  narrator?: string;
-  url: string;
-  translation: string;
-  arabic?: string;
-}
+import type { Citation } from "@/types/citations";
 
 interface ChatMessageProps {
   role: "user" | "assistant";

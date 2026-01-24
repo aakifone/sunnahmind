@@ -12,6 +12,8 @@ import { useTranslate } from "@/hooks/useTranslate";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { QuranCitationData } from "@/components/QuranCitation";
+import type { Json } from "@/integrations/supabase/types";
+import type { Citation } from "@/types/citations";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,16 +47,6 @@ const messageSchema = z.object({
     .max(2000, 'Message must be less than 2000 characters')
     .trim()
 });
-
-interface Citation {
-  collection: string;
-  hadithNumber: string;
-  narrator?: string;
-  url: string;
-  translation?: string;
-  arabic?: string;
-  sourceUrl?: string;
-}
 
 interface Message {
   role: "user" | "assistant";
@@ -288,13 +280,16 @@ const Chat = () => {
   const saveMessage = async (conversationId: string, message: Message) => {
     const { error } = await supabase
       .from("chat_messages")
-      .insert({
-        conversation_id: conversationId,
-        role: message.role,
-        content: message.content,
-        citations: message.citations || null,
-        quran_citations: message.quranCitations || null,
-      });
+      // PostgREST typings in this project expect an array payload.
+      .insert([
+        {
+          conversation_id: conversationId,
+          role: message.role,
+          content: message.content,
+          citations: (message.citations ?? null) as unknown as Json | null,
+          quran_citations: (message.quranCitations ?? null) as unknown as Json | null,
+        },
+      ]);
 
     if (error) {
       console.error("Error saving message:", error);
@@ -320,8 +315,12 @@ const Chat = () => {
     const loadedMessages: Message[] = data.map((msg) => ({
       role: msg.role as "user" | "assistant",
       content: msg.content,
-      citations: (msg.citations as Citation[] | null) ?? undefined,
-      quranCitations: (msg.quran_citations as QuranCitationData[] | null) ?? undefined,
+      citations: (Array.isArray(msg.citations)
+        ? (msg.citations as unknown as Citation[])
+        : undefined),
+      quranCitations: (Array.isArray(msg.quran_citations)
+        ? (msg.quran_citations as unknown as QuranCitationData[])
+        : undefined),
       timestamp: new Date(msg.created_at),
     }));
 
