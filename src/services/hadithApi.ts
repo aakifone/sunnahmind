@@ -121,7 +121,7 @@ const normalizeEditions = (data: unknown): HadithEditionSummary[] => {
       : [];
 
   return editionItems
-    .map((item) => {
+    .map((item): HadithEditionSummary | null => {
       if (!isRecord(item)) return null;
       const name = getNestedString(item, ["name", "slug", "id", "edition"]);
       if (!name) return null;
@@ -132,7 +132,7 @@ const normalizeEditions = (data: unknown): HadithEditionSummary[] => {
         language: getNestedString(item, ["language", "lang"]),
       };
     })
-    .filter((item): item is HadithEditionSummary => Boolean(item));
+    .filter((item): item is HadithEditionSummary => item !== null);
 };
 
 export const listHadithEditions = async (): Promise<HadithEditionSummary[]> => {
