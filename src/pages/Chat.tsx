@@ -111,7 +111,6 @@ const Chat = () => {
   const [hadithStatus, setHadithStatus] = useState<"idle" | "loading" | "error" | "success">(
     "idle",
   );
-  const [hadithError, setHadithError] = useState<string | null>(null);
   const [hadithQuery, setHadithQuery] = useState("");
   const requestIdRef = useRef(0);
   const pendingHadithCitations = useRef(new Map<number, Citation[]>());
@@ -238,7 +237,6 @@ const Chat = () => {
       }
 
       setHadithStatus("loading");
-      setHadithError(null);
 
       const maxResults = 8;
       const sampleCount = 24;
@@ -298,9 +296,8 @@ const Chat = () => {
         }
       } catch (error) {
         console.error("Failed to fetch relevant hadith:", error);
-        setHadithStatus("error");
+        setHadithStatus("idle");
         setHadithResults([]);
-        setHadithError(t("Unable to fetch hadiths. Please try again."));
       }
     },
     [ALL_EDITIONS_VALUE, editionOptions, getEditionLabel, mergeHadithCitations, selectedEdition, t],
@@ -508,22 +505,12 @@ const Chat = () => {
       }
     } catch (error) {
       console.error("Error calling hadith-chat:", error);
-      
+
       toast({
         title: t("Error"),
         description: t("Failed to get response. Please try again."),
         variant: "destructive",
       });
-      
-      const errorMessage: Message = {
-        role: "assistant",
-        content: t(
-          "I apologize, but I encountered an error processing your request. Please try again.",
-        ),
-        timestamp: new Date(),
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -742,35 +729,13 @@ const Chat = () => {
                 )}
               </p>
             </div>
-            {hadithStatus !== "idle" && (
+            {hadithStatus === "success" && hadithResults.length > 0 && (
               <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  {hadithStatus === "loading" && (
-                    <>
-                      <div className="h-3 w-3 animate-spin rounded-full border border-accent border-t-transparent" />
-                      <span>{t("Fetching hadith citations...")}</span>
-                    </>
-                  )}
-                  {hadithStatus === "success" && hadithResults.length > 0 && (
-                    <span>
-                      {t("Added")} {hadithResults.length} {t("hadith citations")}
-                    </span>
-                  )}
-                  {hadithStatus === "error" && (
-                    <span className="text-destructive">
-                      {hadithError ?? t("Unable to fetch hadiths.")}
-                    </span>
-                  )}
+                  <span>
+                    {t("Added")} {hadithResults.length} {t("hadith citations")}
+                  </span>
                 </div>
-                {hadithStatus === "error" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => runHadithSearch(hadithQuery, requestIdRef.current)}
-                  >
-                    {t("Retry")}
-                  </Button>
-                )}
               </div>
             )}
           </div>
