@@ -20,7 +20,7 @@ const Hero = () => {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
             }}>
-              السلام عليكم ورحمة الله وبركاته
+              السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
             </h1>
           </div>
 

@@ -37,9 +37,23 @@ const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: Ch
       <div className="max-w-[85%] md:max-w-[75%]">
         <div className="bg-gradient-to-br from-card to-card/80 border border-accent/30 rounded-2xl rounded-tl-sm px-6 py-5 shadow-lg hover:shadow-xl transition-shadow">
           <div className="text-sm leading-relaxed mb-4 space-y-3">
-            {content.split('\n\n').map((paragraph, idx) => (
-              <p key={idx} className="whitespace-pre-wrap text-foreground/90">{paragraph}</p>
-            ))}
+            {content.split('\n\n').map((paragraph, idx) => {
+              const isBismillah =
+                paragraph.includes("بِسْ") &&
+                paragraph.includes("الرَّحْمَن");
+              return (
+                <p
+                  key={idx}
+                  className={
+                    isBismillah
+                      ? "whitespace-pre-wrap text-center text-2xl md:text-3xl font-semibold tracking-wide leading-snug text-foreground"
+                      : "whitespace-pre-wrap text-foreground/90"
+                  }
+                >
+                  {paragraph}
+                </p>
+              );
+            })}
           </div>
 
           {/* Hadith Citations Section */}
