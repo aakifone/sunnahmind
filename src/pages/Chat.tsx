@@ -390,8 +390,17 @@ const Chat = () => {
   };
 
   const resolveHadithChatEndpoint = () => {
-    const endpoint = import.meta.env.VITE_HADITH_API_URL?.trim();
-    return endpoint && endpoint.length > 0 ? endpoint : "/api/hadith-chat";
+    const configuredEndpoint = import.meta.env.VITE_HADITH_API_URL?.trim();
+    if (configuredEndpoint) {
+      return configuredEndpoint;
+    }
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+    if (supabaseUrl) {
+      return `${supabaseUrl.replace(/\/$/, "")}/functions/v1/hadith-chat`;
+    }
+
+    return "/api/hadith-chat";
   };
 
   const fetchHadithChatResponse = async (payload: {
