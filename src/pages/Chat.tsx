@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Sparkles, LogIn, Home } from "lucide-react";
@@ -65,21 +65,40 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const greetingMessage = `السلام عليكم! ${t(
+  const fullSalam = "السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ";
+  const bismillahMessage = "بِسْــــــــــــــــــمِ اﷲِالرَّحْمَنِ اارَّحِيم";
+  const greetingMessage = `${fullSalam}\n\n${bismillahMessage}\n\n${t(
     "I'm Sunnah Mind. Ask me any question about Islamic teachings, and I'll provide authentic hadiths and Quran verses with direct citations.",
   )}`;
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: greetingMessage,
-      timestamp: new Date(),
+  const buildInitialMessages = useCallback(
+    (includeBismillahIntro: boolean) => {
+      const greeting: Message = {
+        role: "assistant",
+        content: greetingMessage,
+        timestamp: new Date(),
+      };
+      if (!includeBismillahIntro) {
+        return [greeting];
+      }
+      return [
+        {
+          role: "assistant",
+          content: bismillahMessage,
+          timestamp: new Date(),
+        },
+        greeting,
+      ];
     },
-  ]);
+    [bismillahMessage, greetingMessage],
+  );
+  const [messages, setMessages] = useState<Message[]>(() => buildInitialMessages(false));
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSignUpDialog, setShowSignUpDialog] = useState(false);
   const [hasAskedFirstQuestion, setHasAskedFirstQuestion] = useState(false);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
+  const ALL_EDITIONS_VALUE = "all";
+  const allEditionsLabel = t("All editions");
   const [editionOptions, setEditionOptions] = useState<HadithEditionSummary[]>([]);
   const [editionStatus, setEditionStatus] = useState<"idle" | "loading" | "error">("idle");
   const [editionError, setEditionError] = useState<string | null>(null);
@@ -90,9 +109,9 @@ const Chat = () => {
     return window.localStorage.getItem("hadith-selected-edition") || defaultHadithEdition;
   });
   const [hadithResults, setHadithResults] = useState<HadithSearchResult[]>([]);
-  const [hadithStatus, setHadithStatus] = useState<
-    "idle" | "loading" | "error" | "empty" | "success"
-  >("idle");
+  const [hadithStatus, setHadithStatus] = useState<"idle" | "loading" | "error" | "success">(
+    "idle",
+  );
   const [hadithError, setHadithError] = useState<string | null>(null);
   const [hadithQuery, setHadithQuery] = useState("");
   const requestIdRef = useRef(0);
@@ -100,13 +119,6 @@ const Chat = () => {
 
   // Favorites hook
   const { favorites, removeFavorite } = useFavorites();
-
-  const selectedEditionLabel = useMemo(() => {
-    const selected = editionOptions.find((edition) => edition.name === selectedEdition);
-    if (!selected) return selectedEdition;
-    const collectionLabel = selected.collection ?? selected.name;
-    return selected.language ? `${collectionLabel} (${selected.language})` : collectionLabel;
-  }, [editionOptions, selectedEdition]);
 
   const getEditionLabel = useCallback(
     (editionName: string) => {
@@ -142,10 +154,15 @@ const Chat = () => {
         const sorted = [...editions].sort((a, b) =>
           (a.collection ?? a.name).localeCompare(b.collection ?? b.name),
         );
-        setEditionOptions(sorted);
+        const allEditionsOption: HadithEditionSummary = {
+          name: ALL_EDITIONS_VALUE,
+          collection: allEditionsLabel,
+        };
+        const options = [allEditionsOption, ...sorted];
+        setEditionOptions(options);
         setEditionStatus("idle");
 
-        if (!sorted.some((edition) => edition.name === selectedEdition)) {
+        if (!options.some((edition) => edition.name === selectedEdition)) {
           setSelectedEdition(sorted[0]?.name ?? defaultHadithEdition);
         }
       } catch (error) {
@@ -156,7 +173,7 @@ const Chat = () => {
     };
 
     loadEditions();
-  }, [t]);
+  }, [allEditionsLabel, t]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -166,11 +183,7 @@ const Chat = () => {
 
   useEffect(() => {
     setMessages((prev) => {
-      if (
-        prev.length === 1 &&
-        prev[0].role === "assistant" &&
-        prev[0].content.startsWith("السلام عليكم!")
-      ) {
+      if (prev.length === 1 && prev[0].role === "assistant" && prev[0].content.includes(fullSalam)) {
         return [
           {
             ...prev[0],
@@ -180,7 +193,21 @@ const Chat = () => {
       }
       return prev;
     });
-  }, [greetingMessage]);
+  }, [fullSalam, greetingMessage]);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    setMessages((prev) => {
+      if (
+        prev.length === 1 &&
+        prev[0].role === "assistant" &&
+        prev[0].content === greetingMessage
+      ) {
+        return buildInitialMessages(true);
+      }
+      return prev;
+    });
+  }, [buildInitialMessages, greetingMessage, session?.user]);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -214,15 +241,48 @@ const Chat = () => {
       setHadithStatus("loading");
       setHadithError(null);
 
-      try {
-        const results = await fetchRelevantHadith(trimmedQuery, selectedEdition);
-        if (results.length === 0) {
-          setHadithStatus("empty");
-          setHadithResults([]);
-        } else {
-          setHadithStatus("success");
-          setHadithResults(results);
+      const maxResults = 8;
+      const sampleCount = 24;
+      const runEditionSearch = async (editionName: string, limit: number) =>
+        fetchRelevantHadith(trimmedQuery, editionName, sampleCount, limit);
+
+      const runAllEditionsSearch = async () => {
+        const editionNames = editionOptions
+          .filter((edition) => edition.name !== ALL_EDITIONS_VALUE)
+          .map((edition) => edition.name);
+        if (editionNames.length === 0) return [];
+
+        const batchSize = 3;
+        const aggregated: HadithSearchResult[] = [];
+
+        for (let i = 0; i < editionNames.length && aggregated.length < maxResults; i += batchSize) {
+          const batch = editionNames.slice(i, i + batchSize);
+          const remaining = maxResults - aggregated.length;
+          const batchResults = await Promise.all(
+            batch.map((editionName) => runEditionSearch(editionName, remaining)),
+          );
+          for (const results of batchResults) {
+            aggregated.push(...results);
+            if (aggregated.length >= maxResults) break;
+          }
         }
+
+        return aggregated.slice(0, maxResults);
+      };
+
+      try {
+        const results =
+          selectedEdition === ALL_EDITIONS_VALUE
+            ? await runAllEditionsSearch()
+            : await runEditionSearch(selectedEdition, maxResults);
+        if (results.length === 0) {
+          setHadithStatus("idle");
+          setHadithResults([]);
+          return;
+        }
+
+        setHadithStatus("success");
+        setHadithResults(results);
 
         const citations = results.map((hadith) => ({
           collection: getEditionLabel(hadith.editionName),
@@ -244,7 +304,7 @@ const Chat = () => {
         setHadithError(t("Unable to fetch hadiths. Please try again."));
       }
     },
-    [getEditionLabel, mergeHadithCitations, selectedEdition, t],
+    [ALL_EDITIONS_VALUE, editionOptions, getEditionLabel, mergeHadithCitations, selectedEdition, t],
   );
 
   useEffect(() => {
@@ -330,13 +390,7 @@ const Chat = () => {
 
   const handleNewConversation = () => {
     setCurrentConversationId(null);
-    setMessages([
-      {
-        role: "assistant",
-        content: greetingMessage,
-        timestamp: new Date(),
-      }
-    ]);
+    setMessages(buildInitialMessages(Boolean(session?.user)));
   };
 
   const handleSend = async () => {
@@ -389,8 +443,13 @@ const Chat = () => {
     setIsLoading(true);
 
     try {
+      const hadithChatEndpoint = import.meta.env.VITE_HADITH_API_URL;
+      if (!hadithChatEndpoint) {
+        throw new Error("VITE_HADITH_API_URL is not configured");
+      }
+
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hadith-chat`,
+        hadithChatEndpoint,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -567,20 +626,21 @@ const Chat = () => {
             <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {t("Hadith Edition")}
-                </span>
                 <Select
                   value={selectedEdition}
                   onValueChange={setSelectedEdition}
                   disabled={editionStatus === "loading" || editionStatus === "error"}
                 >
-                  <SelectTrigger className="h-8 w-[200px] text-xs">
+                  <SelectTrigger className="h-9 w-[320px] text-sm">
                     <SelectValue placeholder={t("Select edition")} />
                   </SelectTrigger>
                   <SelectContent>
                     {editionOptions.map((edition) => (
-                      <SelectItem key={edition.name} value={edition.name}>
+                      <SelectItem
+                        key={edition.name}
+                        value={edition.name}
+                        className="pl-3 data-[state=checked]:bg-[#8b6a2b] data-[state=checked]:text-white [&>span]:hidden"
+                      >
                         {edition.collection ?? edition.name}
                       </SelectItem>
                     ))}
@@ -677,37 +737,6 @@ const Chat = () => {
               </Button>
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Select
-                  value={selectedEdition}
-                  onValueChange={setSelectedEdition}
-                  disabled={editionStatus === "loading" || editionStatus === "error"}
-                >
-                  <SelectTrigger className="h-7 w-[170px] text-xs" aria-label={t("Hadith Edition")}>
-                    <SelectValue placeholder={t("Select edition")} />
-                  </SelectTrigger>
-                  <SelectContent position="popper" side="top" align="start">
-                    {editionOptions.map((edition) => (
-                      <SelectItem key={edition.name} value={edition.name}>
-                        {edition.collection ?? edition.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-xs text-muted-foreground">
-                  {t("Edition")}: {selectedEditionLabel}
-                </span>
-                {editionStatus === "loading" && (
-                  <span className="text-xs text-muted-foreground">
-                    {t("Loading editions...")}
-                  </span>
-                )}
-                {editionStatus === "error" && (
-                  <span className="text-xs text-destructive">
-                    {editionError ?? t("Failed to load editions.")}
-                  </span>
-                )}
-              </div>
               <p className="text-xs text-muted-foreground text-center">
                 {t(
                   "Authentic sources from sunnah.com & quran.com • Not for issuing fatwas",
@@ -722,9 +751,6 @@ const Chat = () => {
                       <div className="h-3 w-3 animate-spin rounded-full border border-accent border-t-transparent" />
                       <span>{t("Fetching hadith citations...")}</span>
                     </>
-                  )}
-                  {hadithStatus === "empty" && (
-                    <span>{t("No relevant hadiths found in the sampled set.")}</span>
                   )}
                   {hadithStatus === "success" && hadithResults.length > 0 && (
                     <span>
