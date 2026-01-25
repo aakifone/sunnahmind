@@ -389,6 +389,41 @@ const Chat = () => {
     setMessages(buildInitialMessages(Boolean(session?.user)));
   };
 
+  const resolveHadithChatEndpoint = () => {
+    const configuredEndpoint = import.meta.env.VITE_HADITH_API_URL?.trim();
+    if (configuredEndpoint) {
+      return configuredEndpoint;
+    }
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+    if (supabaseUrl) {
+      return `${supabaseUrl.replace(/\/$/, "")}/functions/v1/hadith-chat`;
+    }
+
+    return "/api/hadith-chat";
+  };
+
+  const fetchHadithChatResponse = async (payload: {
+    messages: Array<{ role: "user" | "assistant"; content: string }>;
+    language: { code: string; label: string; translateCode: string };
+  }) => {
+    const hadithChatEndpoint = resolveHadithChatEndpoint();
+    const response = await fetch(hadithChatEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(
+        `Hadith chat service error (${response.status}): ${errorBody}`,
+      );
+    }
+
+    return await response.json();
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -439,38 +474,20 @@ const Chat = () => {
     setIsLoading(true);
 
     try {
-      const hadithChatEndpoint = import.meta.env.VITE_HADITH_API_URL;
-      if (!hadithChatEndpoint) {
-        throw new Error("VITE_HADITH_API_URL is not configured");
-      }
-
-      const response = await fetch(
-        hadithChatEndpoint,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: [
-              ...messages.map(msg => ({
-                role: msg.role,
-                content: msg.content
-              })),
-              { role: "user", content: input }
-            ],
-            language: {
-              code: language.code,
-              label: language.label,
-              translateCode: language.translateCode,
-            },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to get response from service');
-      }
-
-      const data = await response.json();
+      const data = await fetchHadithChatResponse({
+        messages: [
+          ...messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+          { role: "user", content: input },
+        ],
+        language: {
+          code: language.code,
+          label: language.label,
+          translateCode: language.translateCode,
+        },
+      });
       
       const assistantMessage: Message = {
         role: "assistant",
