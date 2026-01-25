@@ -65,11 +65,10 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const fullSalam = "السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ";
   const bismillahMessage = "بِسْــــــــــــــــــمِ اﷲِالرَّحْمَنِ اارَّحِيم";
-  const greetingMessage = `${fullSalam}\n\n${bismillahMessage}\n\n${t(
+  const greetingMessage = `${bismillahMessage}\n\n\n\n${t(
     "I'm Sunnah Mind. Ask me any question about Islamic teachings, and I'll provide authentic hadiths and Quran verses with direct citations.",
-  )}`;
+  )} إِنْ شَاءَ ٱللَّٰهُ`;
   const buildInitialMessages = useCallback(
     (includeBismillahIntro: boolean) => {
       const greeting: Message = {
@@ -183,7 +182,7 @@ const Chat = () => {
 
   useEffect(() => {
     setMessages((prev) => {
-      if (prev.length === 1 && prev[0].role === "assistant" && prev[0].content.includes(fullSalam)) {
+      if (prev.length === 1 && prev[0].role === "assistant" && prev[0].content.includes(bismillahMessage)) {
         return [
           {
             ...prev[0],
@@ -193,7 +192,7 @@ const Chat = () => {
       }
       return prev;
     });
-  }, [fullSalam, greetingMessage]);
+  }, [bismillahMessage, greetingMessage]);
 
   useEffect(() => {
     if (!session?.user) return;
@@ -631,7 +630,7 @@ const Chat = () => {
                   onValueChange={setSelectedEdition}
                   disabled={editionStatus === "loading" || editionStatus === "error"}
                 >
-                  <SelectTrigger className="h-9 w-[320px] text-sm">
+                  <SelectTrigger className="h-9 w-[360px] text-base">
                     <SelectValue placeholder={t("Select edition")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -639,7 +638,7 @@ const Chat = () => {
                       <SelectItem
                         key={edition.name}
                         value={edition.name}
-                        className="pl-3 data-[state=checked]:bg-[#8b6a2b] data-[state=checked]:text-white [&>span]:hidden"
+                        className="pl-3 text-base data-[state=checked]:bg-[#8b6a2b] data-[state=checked]:text-white [&>span:first-child]:hidden"
                       >
                         {edition.collection ?? edition.name}
                       </SelectItem>
