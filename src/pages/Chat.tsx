@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
 import ConversationSidebar from "@/components/ConversationSidebar";
 import AccountDropdown from "@/components/AccountDropdown";
+import HealthCheckBanner from "@/components/HealthCheckBanner";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslate } from "@/hooks/useTranslate";
@@ -70,23 +71,21 @@ const Chat = () => {
     "I'm Sunnah Mind. Ask me any question about Islamic teachings, and I'll provide authentic hadiths and Quran verses with direct citations.",
   )} إِنْ شَاءَ ٱللَّٰهُ`;
   const buildInitialMessages = useCallback(
-    (includeBismillahIntro: boolean) => {
+    (includeBismillahIntro: boolean): Message[] => {
       const greeting: Message = {
-        role: "assistant",
+        role: "assistant" as const,
         content: greetingMessage,
         timestamp: new Date(),
       };
       if (!includeBismillahIntro) {
         return [greeting];
       }
-      return [
-        {
-          role: "assistant",
-          content: bismillahMessage,
-          timestamp: new Date(),
-        },
-        greeting,
-      ];
+      const bismillah: Message = {
+        role: "assistant" as const,
+        content: bismillahMessage,
+        timestamp: new Date(),
+      };
+      return [bismillah, greeting];
     },
     [bismillahMessage, greetingMessage],
   );
@@ -758,6 +757,8 @@ const Chat = () => {
           </div>
         </div>
       </div>
+
+      <HealthCheckBanner />
     </div>
   );
 };
