@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ExternalLink, BookOpen, ChevronDown, Play, Pause, Volume2, Languages } from "lucide-react";
+import { ExternalLink, BookOpen, ChevronDown, Play, Pause, Volume2, Languages, BookmarkPlus, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,6 +16,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useTranslate } from "@/hooks/useTranslate";
+import { useSavedContent } from "@/hooks/useSavedContent";
+import { saveOfflineItem } from "@/lib/offlineStore";
+import { useContentPreferences } from "@/contexts/ContentPreferencesContext";
 
 export interface QuranCitationData {
   surahNumber: number;
@@ -57,6 +60,8 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { t } = useTranslate();
+  const { addItem } = useSavedContent();
+  const { quranLanguage } = useContentPreferences();
   
   // Word-by-word state
   const [showWordByWord, setShowWordByWord] = useState(false);
@@ -283,7 +288,7 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
       {/* Translation/Tafsir Toggle and Content */}
       <div className="px-4 pb-4">
         {/* View Toggle Dropdown */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 gap-1 text-xs bg-background/50">
@@ -307,6 +312,9 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <span className="text-xs text-muted-foreground">
+            {t("Preferred translation")}: {quranLanguage.label}
+          </span>
         </div>
 
         {/* Content Area */}
@@ -364,6 +372,43 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+
+      <div className="px-4 pb-4 flex items-center gap-2 flex-wrap">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            addItem({
+              type: "quran",
+              title: `${citation.surahName} ${citation.ayahNumber}`,
+              content: citation.translation,
+              source: citation.url,
+              list: "favorites",
+            });
+            saveOfflineItem("quran", citation);
+          }}
+          className="h-8 gap-2 text-xs"
+        >
+          <BookmarkPlus className="w-3 h-3" />
+          {t("Save")}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem(
+                "sunnahmind-wallpaper-text",
+                `${citation.arabicText}\n${citation.translation}`,
+              );
+            }
+          }}
+          className="h-8 gap-2 text-xs"
+        >
+          <Image className="w-3 h-3" />
+          {t("Use in wallpaper")}
+        </Button>
       </div>
     </div>
   );

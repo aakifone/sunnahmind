@@ -27,10 +27,10 @@ const Hero = () => {
           {/* Description */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             <span className="font-semibold text-foreground">
-              {t("Ask questions about Hadith & Sunnah:")}
+              {t("A calm, daily Islamic companion:")}
             </span>{" "}
             {t(
-              "AI assistant that answers your questions using Hadiths from sunnah.com. Every answer includes clear references.",
+              "Chat with SunnahMind AI, study structured ‘Ilm, read timeless articles, and keep daily adhkaar with verified sources.",
             )}
           </p>
 
@@ -43,9 +43,9 @@ const Hero = () => {
                 background: 'var(--gradient-gold-brown)',
                 transition: 'all 0.3s ease'
               }}
-              onClick={() => navigate('/chat')}
+              onClick={() => navigate('/ai')}
             >
-              {t("Start Asking Questions")}
+              {t("Enter SunnahMind AI")}
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button 

@@ -1,11 +1,17 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export type HadithDisplayFormat = "arabic-only" | "english-only" | "both";
-export type ThemePreference = "light" | "dark" | "masjid";
+export type ThemePreference = "light" | "dark" | "masjid" | "custom";
 
 interface Preferences {
   hadithDisplayFormat: HadithDisplayFormat;
   themePreference: ThemePreference;
+  customTheme: {
+    background: string;
+    card: string;
+    accent: string;
+    primary: string;
+  };
   fontSize: "small" | "medium" | "large";
   textToSpeech: boolean;
   chatHistoryEnabled: boolean;
@@ -19,6 +25,12 @@ interface PreferencesContextType {
 const defaultPreferences: Preferences = {
   hadithDisplayFormat: "both",
   themePreference: "light",
+  customTheme: {
+    background: "#f8f2e9",
+    card: "#fffaf2",
+    accent: "#c89b3c",
+    primary: "#1f2a44",
+  },
   fontSize: "medium",
   textToSpeech: false,
   chatHistoryEnabled: true,
@@ -29,7 +41,20 @@ const PreferencesContext = createContext<PreferencesContextType | undefined>(und
 export const PreferencesProvider = ({ children }: { children: ReactNode }) => {
   const [preferences, setPreferences] = useState<Preferences>(() => {
     const stored = localStorage.getItem("hadith-preferences");
-    return stored ? JSON.parse(stored) : defaultPreferences;
+    if (!stored) return defaultPreferences;
+    try {
+      const parsed = JSON.parse(stored) as Partial<Preferences>;
+      return {
+        ...defaultPreferences,
+        ...parsed,
+        customTheme: {
+          ...defaultPreferences.customTheme,
+          ...(parsed.customTheme ?? {}),
+        },
+      };
+    } catch {
+      return defaultPreferences;
+    }
   });
 
   useEffect(() => {

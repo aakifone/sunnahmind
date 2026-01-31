@@ -111,6 +111,28 @@ All colors MUST be HSL.
     --shadow-elegant: 0 10px 30px -10px hsl(0 0% 0% / 0.5);
     --shadow-gold-glow: 0 0 40px hsl(41 53% 51% / 0.25);
   }
+
+  :root[data-theme="masjid"] {
+    --background: 140 36% 94%;
+    --foreground: 150 28% 18%;
+    --card: 140 38% 97%;
+    --card-foreground: 150 28% 18%;
+    --popover: 140 38% 97%;
+    --popover-foreground: 150 28% 18%;
+    --primary: 150 28% 18%;
+    --primary-foreground: 140 38% 97%;
+    --secondary: 142 28% 40%;
+    --secondary-foreground: 140 38% 97%;
+    --muted: 140 20% 90%;
+    --muted-foreground: 150 20% 35%;
+    --accent: 160 52% 35%;
+    --accent-foreground: 140 38% 97%;
+    --border: 140 20% 88%;
+    --input: 140 20% 90%;
+    --ring: 160 52% 35%;
+    --gradient-background: radial-gradient(circle at 20% 20%, hsl(160 52% 35% / 0.08), transparent 50%),
+      radial-gradient(circle at 80% 80%, hsl(140 40% 30% / 0.05), transparent 50%);
+  }
 }
 
 @layer base {
