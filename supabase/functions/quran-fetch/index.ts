@@ -20,7 +20,14 @@ serve(async (req) => {
   }
 
   try {
-    const { surahNumber, ayahNumber, type, reciterId } = await req.json();
+    const {
+      surahNumber,
+      ayahNumber,
+      type,
+      reciterId,
+      translationId,
+      wordTranslationLanguage,
+    } = await req.json();
 
     console.log(`Fetching ${type} for Surah ${surahNumber}, Ayah ${ayahNumber}`);
 
@@ -35,8 +42,9 @@ serve(async (req) => {
     if (type === "translation") {
       try {
         // Use quran.com API for translation
+        const translation = translationId ?? 131;
         const response = await fetch(
-          `https://api.quran.com/api/v4/verses/by_key/${surahNumber}:${ayahNumber}?translations=131`,
+          `https://api.quran.com/api/v4/verses/by_key/${surahNumber}:${ayahNumber}?translations=${translation}`,
           { headers: { "Accept": "application/json" } }
         );
         
@@ -99,8 +107,9 @@ serve(async (req) => {
     if (type === "wordbyword") {
       try {
         // Use quran.com API with word_fields
+        const wordLanguage = wordTranslationLanguage ?? "en";
         const response = await fetch(
-          `https://api.quran.com/api/v4/verses/by_key/${surahNumber}:${ayahNumber}?words=true&word_fields=text_uthmani,text_indopak&word_translation_language=en`,
+          `https://api.quran.com/api/v4/verses/by_key/${surahNumber}:${ayahNumber}?words=true&word_fields=text_uthmani,text_indopak&word_translation_language=${wordLanguage}`,
           { headers: { "Accept": "application/json" } }
         );
         

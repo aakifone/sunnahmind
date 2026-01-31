@@ -1,8 +1,18 @@
-import { ExternalLink, BookOpen } from "lucide-react";
+import {
+  ExternalLink,
+  BookOpen,
+  Copy,
+  Volume2,
+  BookmarkPlus,
+  Image as ImageIcon,
+  Share2,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuranCitation, { QuranCitationData } from "@/components/QuranCitation";
 import { useTranslate } from "@/hooks/useTranslate";
 import type { Citation } from "@/types/citations";
+import { usePreferences } from "@/contexts/PreferencesContext";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -10,10 +20,30 @@ interface ChatMessageProps {
   citations?: Citation[];
   quranCitations?: QuranCitationData[];
   timestamp?: Date;
+  onAction?: (action: MessageAction) => void;
 }
 
-const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: ChatMessageProps) => {
+export type MessageAction =
+  | "copy"
+  | "read"
+  | "save"
+  | "save-image"
+  | "share-text"
+  | "share-image"
+  | "explain"
+  | "explain-hadith"
+  | "explain-quran";
+
+const ChatMessage = ({
+  role,
+  content,
+  citations,
+  quranCitations,
+  timestamp,
+  onAction,
+}: ChatMessageProps) => {
   const { t } = useTranslate();
+  const { preferences } = usePreferences();
 
   if (role === "user") {
     return (
@@ -34,8 +64,43 @@ const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: Ch
 
   return (
     <div className="flex justify-start mb-6">
-      <div className="max-w-[85%] md:max-w-[75%]">
-        <div className="bg-gradient-to-br from-card to-card/80 border border-accent/30 rounded-2xl rounded-tl-sm px-6 py-5 shadow-lg hover:shadow-xl transition-shadow">
+      <div className="max-w-[85%] md:max-w-[75%] group">
+        <div className="bg-gradient-to-br from-card to-card/80 border border-accent/30 rounded-2xl rounded-tl-sm px-6 py-5 shadow-lg hover:shadow-xl transition-shadow relative">
+          <div className="absolute -top-3 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="bg-background/90 border border-border/60 rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
+              <Button variant="ghost" size="icon" onClick={() => onAction?.("copy")}>
+                <Copy className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onAction?.("read")}>
+                <Volume2 className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onAction?.("save")}>
+                <BookmarkPlus className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onAction?.("save-image")}>
+                <ImageIcon className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onAction?.("share-text")}>
+                <Share2 className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onAction?.("share-image")}>
+                <ImageIcon className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onAction?.("explain")}>
+                <Sparkles className="w-4 h-4" />
+              </Button>
+              {citations && citations.length > 0 && (
+                <Button variant="ghost" size="icon" onClick={() => onAction?.("explain-hadith")}>
+                  <BookOpen className="w-4 h-4" />
+                </Button>
+              )}
+              {quranCitations && quranCitations.length > 0 && (
+                <Button variant="ghost" size="icon" onClick={() => onAction?.("explain-quran")}>
+                  <BookOpen className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          </div>
           <div className="text-sm leading-relaxed mb-4 space-y-3">
             {content.split('\n\n').map((paragraph, idx) => {
               const isBismillah =
@@ -102,6 +167,18 @@ const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: Ch
                         <ExternalLink className="w-4 h-4" />
                       </a>
                     </Button>
+                  </div>
+                  <div className="px-4 pb-4 space-y-3">
+                    {preferences.hadithDisplayFormat !== "english-only" && citation.arabic && (
+                      <p className="text-right text-base font-arabic leading-loose text-foreground/90">
+                        {citation.arabic}
+                      </p>
+                    )}
+                    {preferences.hadithDisplayFormat !== "arabic-only" && citation.translation && (
+                      <p className="text-sm text-foreground/90 leading-relaxed">
+                        {citation.translation}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
