@@ -10,14 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "lucide-react";
 import { useTranslate } from "@/hooks/useTranslate";
-import { useContentPreferences } from "@/contexts/ContentPreferencesContext";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -26,15 +18,6 @@ interface SettingsDialogProps {
 
 const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   const { preferences, updatePreferences } = usePreferences();
-  const {
-    hadithLanguage,
-    quranLanguage,
-    articleLanguage,
-    setHadithLanguage,
-    setQuranLanguage,
-    setArticleLanguage,
-    options,
-  } = useContentPreferences();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useTranslate();
@@ -153,58 +136,6 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
           {/* Accessibility Tab */}
           <TabsContent value="accessibility" className="space-y-4 py-4">
             <div className="space-y-4">
-              <div className="space-y-3">
-                <Label className="text-base font-semibold">
-                  {t("Content Languages")}
-                </Label>
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t("Hadith")}</Label>
-                    <Select value={hadithLanguage.code} onValueChange={setHadithLanguage}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("Language")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {options.map((option) => (
-                          <SelectItem key={option.code} value={option.code}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t("Quran")}</Label>
-                    <Select value={quranLanguage.code} onValueChange={setQuranLanguage}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("Language")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {options.map((option) => (
-                          <SelectItem key={option.code} value={option.code}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">{t("Articles")}</Label>
-                    <Select value={articleLanguage.code} onValueChange={setArticleLanguage}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("Language")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {options.map((option) => (
-                          <SelectItem key={option.code} value={option.code}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
               <div className="space-y-3">
                 <Label className="text-base font-semibold">
                   {t("Font Size")}

@@ -81,83 +81,8 @@ const PersonalizationDialog = ({ open, onOpenChange }: PersonalizationDialogProp
                   {t("Masjid (green tones, kufic pattern)")}
                 </Label>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="custom" id="custom" />
-                <Label htmlFor="custom" className="cursor-pointer font-normal">
-                  {t("Custom theme")}
-                </Label>
-              </div>
             </RadioGroup>
           </div>
-
-          {preferences.themePreference === "custom" && (
-            <div className="space-y-4 rounded-lg border border-border/50 p-4">
-              <div className="space-y-2">
-                <Label className="text-sm">{t("Background")}</Label>
-                <input
-                  type="color"
-                  value={preferences.customTheme.background}
-                  onChange={(event) =>
-                    updatePreferences({
-                      customTheme: {
-                        ...preferences.customTheme,
-                        background: event.target.value,
-                      },
-                    })
-                  }
-                  className="h-10 w-full rounded-md border border-border/50 bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm">{t("Card")}</Label>
-                <input
-                  type="color"
-                  value={preferences.customTheme.card}
-                  onChange={(event) =>
-                    updatePreferences({
-                      customTheme: {
-                        ...preferences.customTheme,
-                        card: event.target.value,
-                      },
-                    })
-                  }
-                  className="h-10 w-full rounded-md border border-border/50 bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm">{t("Accent")}</Label>
-                <input
-                  type="color"
-                  value={preferences.customTheme.accent}
-                  onChange={(event) =>
-                    updatePreferences({
-                      customTheme: {
-                        ...preferences.customTheme,
-                        accent: event.target.value,
-                      },
-                    })
-                  }
-                  className="h-10 w-full rounded-md border border-border/50 bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm">{t("Primary")}</Label>
-                <input
-                  type="color"
-                  value={preferences.customTheme.primary}
-                  onChange={(event) =>
-                    updatePreferences({
-                      customTheme: {
-                        ...preferences.customTheme,
-                        primary: event.target.value,
-                      },
-                    })
-                  }
-                  className="h-10 w-full rounded-md border border-border/50 bg-background"
-                />
-              </div>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>

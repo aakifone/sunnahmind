@@ -25,7 +25,7 @@ const Auth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
-        navigate("/ai");
+        navigate("/chat");
       }
     });
 
@@ -33,7 +33,7 @@ const Auth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
-        navigate("/ai");
+        navigate("/chat");
       }
     });
 
@@ -62,7 +62,7 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/ai`,
+            emailRedirectTo: `${window.location.origin}/chat`,
           },
         });
         
@@ -74,11 +74,10 @@ const Auth = () => {
         });
         setIsLogin(true);
       }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t("An error occurred");
+    } catch (error: any) {
       toast({
         title: t("Error"),
-        description: t(message),
+        description: t(error.message || "An error occurred"),
         variant: "destructive",
       });
     } finally {
@@ -91,16 +90,15 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/ai`,
+          redirectTo: `${window.location.origin}/chat`,
         },
       });
       
       if (error) throw error;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : t("An error occurred");
+    } catch (error: any) {
       toast({
         title: t("Error"),
-        description: t(message),
+        description: t(error.message || "An error occurred"),
         variant: "destructive",
       });
     }

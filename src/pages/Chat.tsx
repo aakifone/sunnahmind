@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Sparkles, LogIn, Home } from "lucide-react";
@@ -9,7 +9,6 @@ import AccountDropdown from "@/components/AccountDropdown";
 import HealthCheckBanner from "@/components/HealthCheckBanner";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useContentPreferences } from "@/contexts/ContentPreferencesContext";
 import { useTranslate } from "@/hooks/useTranslate";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -28,9 +27,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { z } from 'zod';
 import { useFavorites } from "@/hooks/useFavorites";
-import { useRamadanMode } from "@/hooks/useRamadanMode";
-import { saveOfflineItem } from "@/lib/offlineStore";
-import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import {
   Select,
   SelectContent,
@@ -66,10 +62,6 @@ const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { language } = useLanguage();
-  const { hadithLanguage, setHadithLanguage, quranLanguage, setQuranLanguage, options } =
-    useContentPreferences();
-  const { isRamadanMode } = useRamadanMode();
-  const isOffline = useOfflineStatus();
   const { t } = useTranslate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -122,16 +114,6 @@ const Chat = () => {
   const requestIdRef = useRef(0);
   const pendingHadithCitations = useRef(new Map<number, Citation[]>());
 
-  const filteredEditionOptions = useMemo(() => {
-    const token = hadithLanguage.label.toLowerCase();
-    const filtered = editionOptions.filter((edition) => {
-      if (edition.name === ALL_EDITIONS_VALUE) return true;
-      if (!edition.language) return token === "english" || token === "arabic";
-      return edition.language.toLowerCase().includes(token) || edition.language.toLowerCase().includes(hadithLanguage.code);
-    });
-    return filtered.length > 0 ? filtered : editionOptions;
-  }, [ALL_EDITIONS_VALUE, editionOptions, hadithLanguage]);
-
   // Favorites hook
   const { favorites, removeFavorite } = useFavorites();
 
@@ -139,8 +121,7 @@ const Chat = () => {
     (editionName: string) => {
       const selected = editionOptions.find((edition) => edition.name === editionName);
       if (!selected) return editionName;
-      const languageLabel = selected.language ? ` (${selected.language})` : "";
-      return `${selected.collection ?? selected.name}${languageLabel}`;
+      return selected.collection ?? selected.name;
     },
     [editionOptions],
   );
@@ -262,7 +243,7 @@ const Chat = () => {
         fetchRelevantHadith(trimmedQuery, editionName, sampleCount, limit);
 
       const runAllEditionsSearch = async () => {
-        const editionNames = filteredEditionOptions
+        const editionNames = editionOptions
           .filter((edition) => edition.name !== ALL_EDITIONS_VALUE)
           .map((edition) => edition.name);
         if (editionNames.length === 0) return [];
@@ -318,7 +299,7 @@ const Chat = () => {
         setHadithResults([]);
       }
     },
-    [ALL_EDITIONS_VALUE, filteredEditionOptions, getEditionLabel, mergeHadithCitations, selectedEdition, t],
+    [ALL_EDITIONS_VALUE, editionOptions, getEditionLabel, mergeHadithCitations, selectedEdition, t],
   );
 
   useEffect(() => {
@@ -442,18 +423,10 @@ const Chat = () => {
     return await response.json();
   };
 
-  const sendPrompt = async (prompt: string) => {
-    if (!prompt.trim()) return;
-    if (isOffline) {
-      toast({
-        title: t("You're offline"),
-        description: t("Reconnect to continue chatting with SunnahMind AI."),
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSend = async () => {
+    if (!input.trim()) return;
 
-    const validation = messageSchema.safeParse({ content: prompt });
+    const validation = messageSchema.safeParse({ content: input });
     if (!validation.success) {
       toast({
         title: t("Invalid input"),
@@ -476,13 +449,13 @@ const Chat = () => {
       setCurrentConversationId(conversationId);
     }
 
-    const trimmedQuery = prompt.trim();
+    const trimmedQuery = input.trim();
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
 
     const userMessage: Message = {
       role: "user",
-      content: prompt,
+      content: input,
       timestamp: new Date(),
       requestId,
     };
@@ -496,6 +469,7 @@ const Chat = () => {
       await saveMessage(conversationId, userMessage);
     }
     
+    setInput("");
     setIsLoading(true);
 
     try {
@@ -505,7 +479,7 @@ const Chat = () => {
             role: msg.role,
             content: msg.content,
           })),
-          { role: "user", content: prompt },
+          { role: "user", content: input },
         ],
         language: {
           code: language.code,
@@ -522,13 +496,6 @@ const Chat = () => {
         timestamp: new Date(),
         requestId,
       };
-
-      if (assistantMessage.citations && assistantMessage.citations.length > 0) {
-        assistantMessage.citations.forEach((citation) => saveOfflineItem("hadith", citation));
-      }
-      if (assistantMessage.quranCitations && assistantMessage.quranCitations.length > 0) {
-        assistantMessage.quranCitations.forEach((citation) => saveOfflineItem("quran", citation));
-      }
 
       setMessages(prev => {
         const pendingCitations = pendingHadithCitations.current.get(requestId) ?? [];
@@ -549,7 +516,7 @@ const Chat = () => {
         await saveMessage(conversationId, assistantMessage);
 
         if (messages.length === 1) {
-          await updateConversationTitle(conversationId, prompt);
+          await updateConversationTitle(conversationId, input);
         }
       }
     } catch (error) {
@@ -563,11 +530,6 @@ const Chat = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleSend = async () => {
-    await sendPrompt(input);
-    setInput("");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -650,7 +612,7 @@ const Chat = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className={`flex-1 flex flex-col ${isRamadanMode ? "bg-emerald-950/5" : ""}`}>
+      <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="border-b border-border/40 bg-card/50 backdrop-blur px-6 py-4">
           <div className="flex items-center justify-between gap-4">
@@ -663,28 +625,9 @@ const Chat = () => {
               <Home className="w-4 h-4" />
               <span>{t("Home")}</span>
             </Button>
-            <div className="flex flex-col items-center gap-1">
-              <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
-              {isRamadanMode && (
-                <span className="text-xs text-emerald-600">
-                  {t("Ramadan Mode • shorter, softer responses")}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3 flex-wrap justify-end">
+            <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
+            <div className="flex items-center gap-3">
               <div className="flex flex-col items-end gap-1">
-                <Select value={hadithLanguage.code} onValueChange={setHadithLanguage}>
-                  <SelectTrigger className="h-9 w-[180px] text-sm">
-                    <SelectValue placeholder={t("Hadith language")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {options.map((option) => (
-                      <SelectItem key={option.code} value={option.code}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <Select
                   value={selectedEdition}
                   onValueChange={setSelectedEdition}
@@ -694,7 +637,7 @@ const Chat = () => {
                     <SelectValue placeholder={t("Select edition")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredEditionOptions.map((edition) => (
+                    {editionOptions.map((edition) => (
                       <SelectItem
                         key={edition.name}
                         value={edition.name}
@@ -714,18 +657,6 @@ const Chat = () => {
                   <span className="text-[10px] text-destructive">{editionError}</span>
                 )}
               </div>
-              <Select value={quranLanguage.code} onValueChange={setQuranLanguage}>
-                <SelectTrigger className="h-9 w-[180px] text-sm">
-                  <SelectValue placeholder={t("Quran language")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {options.map((option) => (
-                    <SelectItem key={option.code} value={option.code}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               {session?.user ? (
                 <AccountDropdown userEmail={session.user.email || ""} />
               ) : (
@@ -755,18 +686,9 @@ const Chat = () => {
                 <ChatMessage
                   role={message.role}
                   content={message.content}
-                  citations={
-                    isRamadanMode && message.citations
-                      ? message.citations.slice(0, 2)
-                      : message.citations
-                  }
-                  quranCitations={
-                    isRamadanMode && message.quranCitations
-                      ? message.quranCitations.slice(0, 2)
-                      : message.quranCitations
-                  }
+                  citations={message.citations}
+                  quranCitations={message.quranCitations}
                   timestamp={message.timestamp}
-                  onExplain={(prompt) => sendPrompt(prompt)}
                 />
               </div>
             ))}
@@ -804,12 +726,12 @@ const Chat = () => {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyPress}
                   className="min-h-[60px] max-h-[200px] resize-none pr-12 bg-background border-border/50 focus:border-accent transition-colors"
-                  disabled={isLoading || isOffline}
+                  disabled={isLoading}
                 />
               </div>
               <Button
                 onClick={handleSend}
-                disabled={!input.trim() || isLoading || isOffline}
+                disabled={!input.trim() || isLoading}
                 size="lg"
                 className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm hover:shadow-gold-glow transition-all duration-300 hover:scale-105"
               >
@@ -822,11 +744,6 @@ const Chat = () => {
                   "Authentic sources from sunnah.com & quran.com • Not for issuing fatwas",
                 )}
               </p>
-              {isOffline && (
-                <p className="text-xs text-destructive">
-                  {t("Offline mode: browsing saved content only.")}
-                </p>
-              )}
             </div>
             {hadithStatus === "success" && hadithResults.length > 0 && (
               <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-xs">

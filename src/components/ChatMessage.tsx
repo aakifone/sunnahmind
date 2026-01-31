@@ -1,10 +1,8 @@
-import { ExternalLink, BookOpen, Copy, Volume2, BookmarkPlus, Image, Share2, Sparkles, Clock } from "lucide-react";
+import { ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuranCitation, { QuranCitationData } from "@/components/QuranCitation";
 import { useTranslate } from "@/hooks/useTranslate";
 import type { Citation } from "@/types/citations";
-import { useSavedContent } from "@/hooks/useSavedContent";
-import { createShareableImage, downloadDataUrl } from "@/lib/shareUtils";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -12,19 +10,10 @@ interface ChatMessageProps {
   citations?: Citation[];
   quranCitations?: QuranCitationData[];
   timestamp?: Date;
-  onExplain?: (prompt: string) => void;
 }
 
-const ChatMessage = ({
-  role,
-  content,
-  citations,
-  quranCitations,
-  timestamp,
-  onExplain,
-}: ChatMessageProps) => {
+const ChatMessage = ({ role, content, citations, quranCitations, timestamp }: ChatMessageProps) => {
   const { t } = useTranslate();
-  const { addItem } = useSavedContent();
 
   if (role === "user") {
     return (
@@ -43,103 +32,10 @@ const ChatMessage = ({
     );
   }
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(content);
-  };
-
-  const handleReadAloud = () => {
-    const utterance = new SpeechSynthesisUtterance(content);
-    speechSynthesis.speak(utterance);
-  };
-
-  const handleSave = (list: "favorites" | "later") => {
-    addItem({
-      type: "ai",
-      title: t("AI reflection"),
-      content,
-      list,
-    });
-  };
-
-  const handleSaveHadith = (citation: Citation, list: "favorites" | "later") => {
-    const hadithText = citation.translation ?? citation.arabic ?? "";
-    addItem({
-      type: "hadith",
-      title: `${citation.collection} #${citation.hadithNumber}`,
-      content: hadithText || t("Hadith citation saved."),
-      source: citation.url,
-      list,
-    });
-  };
-
-  const handleSaveImage = async () => {
-    const dataUrl = await createShareableImage({ title: t("SunnahMind AI"), body: content });
-    downloadDataUrl(dataUrl, "sunnahmind-ai.png");
-  };
-
-  const handleShareText = async () => {
-    if (navigator.share) {
-      await navigator.share({ title: t("SunnahMind AI"), text: content });
-    } else {
-      await navigator.clipboard.writeText(content);
-    }
-  };
-
-  const handleShareImage = async () => {
-    const dataUrl = await createShareableImage({ title: t("SunnahMind AI"), body: content });
-    if (navigator.share) {
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-      const file = new File([blob], "sunnahmind-ai.png", { type: blob.type });
-      await navigator.share({ files: [file], title: t("SunnahMind AI") });
-    } else {
-      downloadDataUrl(dataUrl, "sunnahmind-ai.png");
-    }
-  };
-
   return (
     <div className="flex justify-start mb-6">
-      <div className="max-w-[85%] md:max-w-[75%] group">
-        <div className="bg-gradient-to-br from-card to-card/80 border border-accent/30 rounded-2xl rounded-tl-sm px-6 py-5 shadow-lg hover:shadow-xl transition-shadow relative">
-          <div className="absolute -top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="flex items-center gap-1 rounded-full border border-border/50 bg-background/90 px-2 py-1 shadow-sm">
-              <Button variant="ghost" size="icon" onClick={handleCopy}>
-                <Copy className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleReadAloud}>
-                <Volume2 className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => handleSave("favorites")}>
-                <BookmarkPlus className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => handleSave("later")}>
-                <Clock className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleSaveImage}>
-                <Image className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleShareText}>
-                <Share2 className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleShareImage}>
-                <Image className="w-4 h-4 text-accent" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onExplain?.(t("Explain."))}
-              >
-                <BookOpen className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onExplain?.(t("Explain the AI answer in more depth."))}
-              >
-                <Sparkles className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+      <div className="max-w-[85%] md:max-w-[75%]">
+        <div className="bg-gradient-to-br from-card to-card/80 border border-accent/30 rounded-2xl rounded-tl-sm px-6 py-5 shadow-lg hover:shadow-xl transition-shadow">
           <div className="text-sm leading-relaxed mb-4 space-y-3">
             {content.split('\n\n').map((paragraph, idx) => {
               const isBismillah =
@@ -207,35 +103,6 @@ const ChatMessage = ({
                       </a>
                     </Button>
                   </div>
-                  <div className="px-4 pb-4">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        onExplain?.(
-                          `${t("Explain each Hadith:")} ${citation.collection} ${citation.hadithNumber}`,
-                        )
-                      }
-                    >
-                      {t("Explain this hadith")}
-                    </Button>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleSaveHadith(citation, "favorites")}
-                      >
-                        {t("Save")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleSaveHadith(citation, "later")}
-                      >
-                        {t("Saved for later")}
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>
@@ -251,20 +118,7 @@ const ChatMessage = ({
               </div>
 
               {quranCitations.map((citation, index) => (
-                <div key={index} className="space-y-2">
-                  <QuranCitation citation={citation} />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      onExplain?.(
-                        `${t("Explain each Quran verse:")} ${citation.surahName} ${citation.ayahNumber}`,
-                      )
-                    }
-                  >
-                    {t("Explain this verse")}
-                  </Button>
-                </div>
+                <QuranCitation key={index} citation={citation} />
               ))}
             </div>
           )}
