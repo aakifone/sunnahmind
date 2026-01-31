@@ -3,6 +3,10 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import LoadingAnimation from "@/components/LoadingAnimation";
 import { useTranslate } from "@/hooks/useTranslate";
+import ModuleCard from "@/components/ModuleCard";
+import DailyHadithCard from "@/components/DailyHadithCard";
+import RamadanModeCard from "@/components/RamadanModeCard";
+import { BookOpen, Sparkles, ScrollText, HeartHandshake } from "lucide-react";
 
 const Index = () => {
   const [showLoading, setShowLoading] = useState(false);
@@ -39,6 +43,60 @@ const Index = () => {
       <Header />
       <Hero />
       
+      {/* Daily Engagement Section */}
+      <section className="py-16 bg-card/30">
+        <div className="container mx-auto px-4">
+          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <DailyHadithCard />
+            <RamadanModeCard />
+          </div>
+        </div>
+      </section>
+
+      {/* Modules Section */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              {t("Your daily Islamic companion")}
+            </h2>
+            <p className="text-muted-foreground">
+              {t("Explore SunnahMind's core sections for knowledge, reflection, and remembrance.")}
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <ModuleCard
+              title={t("SunnahMind AI")}
+              description={t("Chat-based assistant grounded in Quran and Hadith.")}
+              icon={<Sparkles className="w-6 h-6" />}
+              cta={t("Start chat")}
+              route="/ai"
+            />
+            <ModuleCard
+              title={t("SunnahMind Articles")}
+              description={t("Timeless, searchable articles for steady learning.")}
+              icon={<ScrollText className="w-6 h-6" />}
+              cta={t("Read articles")}
+              route="/articles"
+            />
+            <ModuleCard
+              title={t("SunnahMind ‘Ilm")}
+              description={t("Structured topics, themes, and Hadith collections, with Quran focus.")}
+              icon={<BookOpen className="w-6 h-6" />}
+              cta={t("Explore Ilm")}
+              route="/ilm"
+            />
+            <ModuleCard
+              title={t("SunnahMind Adhkaar")}
+              description={t("Morning, evening, sleep, and gratitude adhkaar.")}
+              icon={<HeartHandshake className="w-6 h-6" />}
+              cta={t("Open Adhkaar")}
+              route="/adhkaar"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* How It Works Section */}
       <section id="how-it-works" className="py-20 bg-card/30">
         <div className="container mx-auto px-4">
