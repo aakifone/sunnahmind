@@ -1,19 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export type HadithDisplayFormat = "arabic-only" | "english-only" | "both";
-export type ThemePreference = "light" | "dark" | "masjid" | "custom";
-
-export interface CustomTheme {
-  background: string;
-  card: string;
-  accent: string;
-  primary: string;
-}
+export type ThemePreference = "light" | "dark" | "masjid";
 
 interface Preferences {
   hadithDisplayFormat: HadithDisplayFormat;
   themePreference: ThemePreference;
-  customTheme: CustomTheme;
   fontSize: "small" | "medium" | "large";
   textToSpeech: boolean;
   chatHistoryEnabled: boolean;
@@ -27,12 +19,6 @@ interface PreferencesContextType {
 const defaultPreferences: Preferences = {
   hadithDisplayFormat: "both",
   themePreference: "light",
-  customTheme: {
-    background: "33 38% 95%",
-    card: "33 45% 98%",
-    accent: "41 53% 51%",
-    primary: "223 42% 20%",
-  },
   fontSize: "medium",
   textToSpeech: false,
   chatHistoryEnabled: true,

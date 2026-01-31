@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslate } from "@/hooks/useTranslate";
 import { BookOpen, Menu } from "lucide-react";
 import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -22,42 +22,29 @@ const Header = () => {
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-lg font-bold leading-none">SunnahMind</span>
+              <span className="text-lg font-bold leading-none">Sunnah Mind</span>
             </div>
           </button>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            {[
-              { to: "/ai", label: t("SunnahMind AI") },
-              { to: "/articles", label: t("Articles") },
-              { to: "/ilm", label: t("Ilm") },
-              { to: "/adhkaar", label: t("Adhkaar") },
-              { to: "/names", label: t("99 Names") },
-              { to: "/family-tree", label: t("Family Tree") },
-              { to: "/wallpaper", label: t("Wallpapers") },
-              { to: "/saved", label: t("Saved") },
-            ].map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `text-sm font-medium transition-colors ${
-                    isActive ? "text-accent" : "hover:text-accent"
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
+            <a href="#how-it-works" className="text-sm font-medium hover:text-accent transition-colors">
+              {t("How It Works")}
+            </a>
+            <a href="#about" className="text-sm font-medium hover:text-accent transition-colors">
+              {t("About")}
+            </a>
+            <a href="#sources" className="text-sm font-medium hover:text-accent transition-colors">
+              {t("Sources")}
+            </a>
           </nav>
 
           {/* CTA Button */}
           <div className="hidden md:flex items-center gap-4">
-            <Button
-              variant="outline"
+            <Button 
+              variant="outline" 
               className="border-accent/30 hover:bg-accent/10 hover:border-accent"
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate('/auth')}
             >
               {t("Sign In")}
             </Button>
@@ -76,33 +63,19 @@ const Header = () => {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-border/40">
             <nav className="flex flex-col gap-4">
-              {[
-                { to: "/ai", label: t("SunnahMind AI") },
-                { to: "/articles", label: t("Articles") },
-                { to: "/ilm", label: t("Ilm") },
-                { to: "/adhkaar", label: t("Adhkaar") },
-                { to: "/names", label: t("99 Names") },
-                { to: "/family-tree", label: t("Family Tree") },
-                { to: "/wallpaper", label: t("Wallpapers") },
-                { to: "/saved", label: t("Saved") },
-              ].map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `text-sm font-medium transition-colors ${
-                      isActive ? "text-accent" : "hover:text-accent"
-                    }`
-                  }
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-              <Button
+              <a href="#how-it-works" className="text-sm font-medium hover:text-accent transition-colors">
+                {t("How It Works")}
+              </a>
+              <a href="#about" className="text-sm font-medium hover:text-accent transition-colors">
+                {t("About")}
+              </a>
+              <a href="#sources" className="text-sm font-medium hover:text-accent transition-colors">
+                {t("Sources")}
+              </a>
+              <Button 
                 className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
                 onClick={() => {
-                  navigate("/auth");
+                  navigate('/auth');
                   setMobileMenuOpen(false);
                 }}
               >

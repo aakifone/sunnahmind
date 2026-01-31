@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Sparkles, LogIn, Home, MoonStar, Image as ImageIcon } from "lucide-react";
+import { Send, Sparkles, LogIn, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import ChatMessage, { MessageAction } from "@/components/ChatMessage";
+import ChatMessage from "@/components/ChatMessage";
 import ConversationSidebar from "@/components/ConversationSidebar";
 import AccountDropdown from "@/components/AccountDropdown";
 import HealthCheckBanner from "@/components/HealthCheckBanner";
-import OfflineBanner from "@/components/OfflineBanner";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslate } from "@/hooks/useTranslate";
@@ -28,11 +27,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { z } from 'zod';
 import { useFavorites } from "@/hooks/useFavorites";
-import { useSavedForLater } from "@/hooks/useSavedForLater";
-import useOnlineStatus from "@/hooks/useOnlineStatus";
-import { cacheHadith, cacheQuran } from "@/lib/offlineCache";
-import { exportTextAsImage, downloadDataUrl, dataUrlToFile } from "@/lib/imageExport";
-import { useRamadanMode } from "@/hooks/useRamadanMode";
 import {
   Select,
   SelectContent,
@@ -69,8 +63,6 @@ const Chat = () => {
   const { toast } = useToast();
   const { language } = useLanguage();
   const { t } = useTranslate();
-  const isOnline = useOnlineStatus();
-  const { isRamadanMode, setIsRamadanMode, autoRamadan } = useRamadanMode();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
@@ -124,56 +116,6 @@ const Chat = () => {
 
   // Favorites hook
   const { favorites, removeFavorite } = useFavorites();
-  const { saveForLater } = useSavedForLater();
-
-  const buildShareText = (message: Message) => {
-    const parts = [message.content];
-    if (message.citations?.length) {
-      parts.push(
-        t("Hadith citations:"),
-        ...message.citations.map(
-          (citation) =>
-            `${citation.collection} #${citation.hadithNumber} — ${citation.translation ?? ""}`,
-        ),
-      );
-    }
-    if (message.quranCitations?.length) {
-      parts.push(
-        t("Quran citations:"),
-        ...message.quranCitations.map(
-          (citation) => `${citation.surahName} ${citation.surahNumber}:${citation.ayahNumber}`,
-        ),
-      );
-    }
-    return parts.filter(Boolean).join("\n");
-  };
-
-  const buildRamadanPrompt = () => {
-    if (!isRamadanMode) return "";
-    const hour = new Date().getHours();
-    let timeNote = t("Provide gentle accountability prompts when helpful.");
-    if (hour < 5) {
-      timeNote = t("Before Fajr: remind about intention (niyyah) for fasting.");
-    } else if (hour >= 16 && hour < 19) {
-      timeNote = t("Before iftar: emphasize mercy, dua, and patience.");
-    } else if (hour >= 20) {
-      timeNote = t("After taraweeh: invite reflection and forgiveness.");
-    }
-
-    return [
-      t("Ramadan mode is active."),
-      t("Keep answers short, calm, and fasting-aware."),
-      t("Use softer language and fewer citations when possible."),
-      timeNote,
-    ].join(" ");
-  };
-
-  const buildStylePrompt = () =>
-    [
-      t("Respond with calm, readable formatting and short paragraphs."),
-      t("Use structured citations for hadith instead of raw lists."),
-      t("Prioritize relevance over quantity."),
-    ].join(" ");
 
   const getEditionLabel = useCallback(
     (editionName: string) => {
@@ -198,17 +140,6 @@ const Chat = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    const lastAssistant = [...messages].reverse().find((msg) => msg.role === "assistant");
-    if (!lastAssistant) return;
-    if (lastAssistant.citations?.length) {
-      cacheHadith(lastAssistant.citations);
-    }
-    if (lastAssistant.quranCitations?.length) {
-      cacheQuran(lastAssistant.quranCitations);
-    }
   }, [messages]);
 
   useEffect(() => {
@@ -492,19 +423,10 @@ const Chat = () => {
     return await response.json();
   };
 
-  const sendMessage = async (messageText: string) => {
-    if (!isOnline) {
-      toast({
-        title: t("Offline"),
-        description: t("You are offline. Please reconnect to send messages."),
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSend = async () => {
+    if (!input.trim()) return;
 
-    if (!messageText.trim()) return;
-
-    const validation = messageSchema.safeParse({ content: messageText });
+    const validation = messageSchema.safeParse({ content: input });
     if (!validation.success) {
       toast({
         title: t("Invalid input"),
@@ -527,13 +449,13 @@ const Chat = () => {
       setCurrentConversationId(conversationId);
     }
 
-    const trimmedQuery = messageText.trim();
+    const trimmedQuery = input.trim();
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
 
     const userMessage: Message = {
       role: "user",
-      content: messageText,
+      content: input,
       timestamp: new Date(),
       requestId,
     };
@@ -551,18 +473,13 @@ const Chat = () => {
     setIsLoading(true);
 
     try {
-      const ramadanPrompt = buildRamadanPrompt();
-      const stylePrompt = buildStylePrompt();
       const data = await fetchHadithChatResponse({
         messages: [
           ...messages.map((msg) => ({
             role: msg.role,
             content: msg.content,
           })),
-          {
-            role: "user",
-            content: [stylePrompt, ramadanPrompt, messageText].filter(Boolean).join("\n\n"),
-          },
+          { role: "user", content: input },
         ],
         language: {
           code: language.code,
@@ -599,7 +516,7 @@ const Chat = () => {
         await saveMessage(conversationId, assistantMessage);
 
         if (messages.length === 1) {
-          await updateConversationTitle(conversationId, messageText);
+          await updateConversationTitle(conversationId, input);
         }
       }
     } catch (error) {
@@ -612,95 +529,6 @@ const Chat = () => {
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleSend = async () => {
-    if (!isOnline) {
-      toast({
-        title: t("Offline"),
-        description: t("You are offline. Please reconnect to send messages."),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    await sendMessage(input);
-  };
-
-  const handleMessageAction = async (action: MessageAction, message: Message) => {
-    try {
-      if (action === "copy") {
-        await navigator.clipboard.writeText(buildShareText(message));
-        toast({ title: t("Copied"), description: t("Answer copied to clipboard.") });
-        return;
-      }
-
-      if (action === "read") {
-        const utterance = new SpeechSynthesisUtterance(message.content);
-        speechSynthesis.speak(utterance);
-        return;
-      }
-
-      if (action === "save") {
-        saveForLater({
-          type: "ai-response",
-          title: t("AI response"),
-          content: message.content,
-        });
-        return;
-      }
-
-      if (action === "save-image" || action === "share-image") {
-        const dataUrl = await exportTextAsImage({
-          title: t("SunnahMind AI"),
-          content: message.content,
-          footer: "SunnahMind",
-          theme: "pattern",
-        });
-        if (!dataUrl) return;
-        if (action === "save-image") {
-          downloadDataUrl(dataUrl, "sunnahmind-response.png");
-        } else if (navigator.share) {
-          const file = await dataUrlToFile(dataUrl, "sunnahmind-response.png");
-          await navigator.share({ files: [file], title: "SunnahMind" });
-        } else {
-          await navigator.clipboard.writeText(dataUrl);
-          toast({ title: t("Shared"), description: t("Image copied as data link.") });
-        }
-        return;
-      }
-
-      if (action === "share-text") {
-        const text = buildShareText(message);
-        if (navigator.share) {
-          await navigator.share({ text });
-        } else {
-          await navigator.clipboard.writeText(text);
-          toast({ title: t("Copied"), description: t("Share text copied.") });
-        }
-        return;
-      }
-
-      if (action === "explain") {
-        await sendMessage(t("Please explain the previous answer in more depth."));
-        return;
-      }
-
-      if (action === "explain-hadith") {
-        await sendMessage(t("Explain each hadith cited in the previous answer."));
-        return;
-      }
-
-      if (action === "explain-quran") {
-        await sendMessage(t("Explain each Quran verse cited in the previous answer."));
-      }
-    } catch (error) {
-      toast({
-        title: t("Error"),
-        description: t("Unable to complete this action."),
-        variant: "destructive",
-      });
     }
   };
 
@@ -722,7 +550,7 @@ const Chat = () => {
   };
 
   return (
-    <div className={`flex h-screen bg-background ${isRamadanMode ? "bg-muted/30" : ""}`}>
+    <div className="flex h-screen bg-background">
       {session?.user && (
         <ConversationSidebar
           currentConversationId={currentConversationId}
@@ -797,7 +625,7 @@ const Chat = () => {
               <Home className="w-4 h-4" />
               <span>{t("Home")}</span>
             </Button>
-            <h1 className="text-xl font-bold gold-text">SunnahMind</h1>
+            <h1 className="text-xl font-bold gold-text">Sunnah Mind</h1>
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-end gap-1">
                 <Select
@@ -829,29 +657,6 @@ const Chat = () => {
                   <span className="text-[10px] text-destructive">{editionError}</span>
                 )}
               </div>
-              <Button
-                variant={isRamadanMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsRamadanMode(!isRamadanMode)}
-                className="gap-2"
-              >
-                <MoonStar className="w-4 h-4" />
-                {isRamadanMode ? t("Ramadan Mode On") : t("Ramadan Mode")}
-              </Button>
-              {autoRamadan && (
-                <span className="text-[10px] text-muted-foreground">
-                  {t("Auto-detected")}
-                </span>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate("/wallpaper")}
-                className="gap-2"
-              >
-                <ImageIcon className="w-4 h-4" />
-                {t("Wallpaper")}
-              </Button>
               {session?.user ? (
                 <AccountDropdown userEmail={session.user.email || ""} />
               ) : (
@@ -871,7 +676,6 @@ const Chat = () => {
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto px-4 py-6 paper-texture">
-          <OfflineBanner isOnline={isOnline} />
           <div className="max-w-4xl mx-auto">
             {messages.map((message, index) => (
               <div
@@ -885,7 +689,6 @@ const Chat = () => {
                   citations={message.citations}
                   quranCitations={message.quranCitations}
                   timestamp={message.timestamp}
-                  onAction={(action) => handleMessageAction(action, message)}
                 />
               </div>
             ))}
@@ -923,12 +726,12 @@ const Chat = () => {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyPress}
                   className="min-h-[60px] max-h-[200px] resize-none pr-12 bg-background border-border/50 focus:border-accent transition-colors"
-                  disabled={isLoading || !isOnline}
+                  disabled={isLoading}
                 />
               </div>
               <Button
                 onClick={handleSend}
-                disabled={!input.trim() || isLoading || !isOnline}
+                disabled={!input.trim() || isLoading}
                 size="lg"
                 className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm hover:shadow-gold-glow transition-all duration-300 hover:scale-105"
               >

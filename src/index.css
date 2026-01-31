@@ -135,10 +135,6 @@ All colors MUST be HSL.
     font-family: 'Inter', 'Noto Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
-  .font-arabic {
-    font-family: 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', serif;
-  }
-
   /* Subtle paper texture */
   .paper-texture {
     background-image: 
