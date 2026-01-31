@@ -25,7 +25,7 @@ const Auth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
-        navigate("/chat");
+        navigate("/ai");
       }
     });
 
@@ -33,7 +33,7 @@ const Auth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
-        navigate("/chat");
+        navigate("/ai");
       }
     });
 
@@ -62,7 +62,7 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/chat`,
+            emailRedirectTo: `${window.location.origin}/ai`,
           },
         });
         
@@ -90,7 +90,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/chat`,
+          redirectTo: `${window.location.origin}/ai`,
         },
       });
       
@@ -118,10 +118,10 @@ const Auth = () => {
           </Button>
           <div className="flex items-center justify-center gap-3 mb-4">
             <BookOpen className="w-12 h-12 text-accent" />
-            <h1 className="text-4xl font-bold gold-text">Sunnah Mind</h1>
+            <h1 className="text-4xl font-bold gold-text">SunnahMind</h1>
           </div>
           <p className="text-muted-foreground">
-            {t("Access authentic hadith guidance")}
+            {t("Access authentic guidance, articles, and daily reminders")}
           </p>
         </div>
 

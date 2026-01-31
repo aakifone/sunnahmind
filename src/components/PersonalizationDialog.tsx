@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { usePreferences, HadithDisplayFormat, ThemePreference } from "@/contexts/PreferencesContext";
 import { useTranslate } from "@/hooks/useTranslate";
@@ -81,7 +82,78 @@ const PersonalizationDialog = ({ open, onOpenChange }: PersonalizationDialogProp
                   {t("Masjid (green tones, kufic pattern)")}
                 </Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="custom" id="custom" />
+                <Label htmlFor="custom" className="cursor-pointer font-normal">
+                  {t("Custom")}
+                </Label>
+              </div>
             </RadioGroup>
+            {preferences.themePreference === "custom" && (
+              <div className="grid gap-3">
+                <p className="text-xs text-muted-foreground">
+                  {t("Enter HSL values, e.g. 33 38% 95%.")}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">{t("Background")}</Label>
+                    <Input
+                      value={preferences.customTheme.background}
+                      onChange={(event) =>
+                        updatePreferences({
+                          customTheme: {
+                            ...preferences.customTheme,
+                            background: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{t("Card")}</Label>
+                    <Input
+                      value={preferences.customTheme.card}
+                      onChange={(event) =>
+                        updatePreferences({
+                          customTheme: {
+                            ...preferences.customTheme,
+                            card: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{t("Accent")}</Label>
+                    <Input
+                      value={preferences.customTheme.accent}
+                      onChange={(event) =>
+                        updatePreferences({
+                          customTheme: {
+                            ...preferences.customTheme,
+                            accent: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{t("Primary")}</Label>
+                    <Input
+                      value={preferences.customTheme.primary}
+                      onChange={(event) =>
+                        updatePreferences({
+                          customTheme: {
+                            ...preferences.customTheme,
+                            primary: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

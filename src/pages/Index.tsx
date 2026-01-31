@@ -2,12 +2,16 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import LoadingAnimation from "@/components/LoadingAnimation";
+import DailyHadithCard from "@/components/DailyHadithCard";
 import { useTranslate } from "@/hooks/useTranslate";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [showLoading, setShowLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const { t } = useTranslate();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check if this is a fresh load/reload of the main page
@@ -38,185 +42,84 @@ const Index = () => {
     <div className="min-h-screen">
       <Header />
       <Hero />
-      
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 bg-card/30">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-              {t("How It Works")}
-            </h2>
-            <p className="text-center text-muted-foreground mb-12">
-              {t("A simple, transparent approach to Islamic knowledge")}
-            </p>
-
-            <div className="space-y-8">
-              <div className="flex gap-6">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-lg">
-                  1
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">
-                    {t("Ask Your Question")}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {t(
-                      "Type your question about Hadith in natural language. Our AI understands context and searches",
-                    )}{" "}
-                    <a
-                      href="#sources"
-                      className="text-accent hover:text-accent/80 transition-colors"
-                    >
-                      {t("our source's")}
-                    </a>{" "}
-                    {t("authenticated collections.")}
-                  </p>
-                </div>
+      <section className="py-16 bg-card/30">
+        <div className="container mx-auto px-4 grid lg:grid-cols-[1.1fr_1fr] gap-10 items-start">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold">{t("Daily Engagement")}</h2>
+              <p className="text-muted-foreground mt-2">
+                {t(
+                  "Return each day for a gentle reminder, saved reflections, and structured study.",
+                )}
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="bg-card border border-border/60 rounded-2xl p-5">
+                <h3 className="font-semibold">{t("SunnahMind AI")}</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {t("Chat-based guidance with sourced hadith and Quran support.")}
+                </p>
+                <Button className="mt-4" onClick={() => navigate("/ai")}>
+                  {t("Open AI")}
+                </Button>
               </div>
-
-              <div className="flex gap-6">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-lg">
-                  2
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">
-                    {t("Get Cited Answers")}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {t(
-                      "Receive a concise answer with direct quotes from Hadith. Each response includes a short description on the query and a link to verify on our source's websites.",
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-6">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-lg">
-                  3
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">
-                    {t("Verify & Learn")}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {t("Click any citation to view the full Hadith on")}{" "}
-                    <a
-                      href="#sources"
-                      className="text-accent hover:text-accent/80 transition-colors"
-                    >
-                      {t("source website")}
-                    </a>
-                    {t(
-                      ". See the Arabic text, translation, and chain of narration. Always consult scholars for rulings.",
-                    )}
-                  </p>
-                </div>
+              <div className="bg-card border border-border/60 rounded-2xl p-5">
+                <h3 className="font-semibold">{t("Saved & Offline")}</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {t("Favorites and Saved for Later lists stay available offline.")}
+                </p>
+                <Button variant="outline" className="mt-4" onClick={() => navigate("/saved")}>
+                  {t("Go to Saved")}
+                </Button>
               </div>
             </div>
           </div>
+          <DailyHadithCard />
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="about" className="py-20 paper-texture">
+      <section className="py-20 paper-texture">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-              {t("Our Mission")}
+          <div className="max-w-4xl mx-auto text-center space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold">
+              {t("Explore the SunnahMind Modules")}
             </h2>
-            <div className="prose prose-lg mx-auto text-muted-foreground">
-            <div className="text-center mb-8 space-y-4">
-              <p>
-                {t(
-                  "In recent years, many scholars and educators have warned against using artificial intelligence for Islamic learning, especially in areas like Hadith, because many AI tools rely on unverified or unreliable sources. This can lead to misquotations, incorrect attributions, or even fabricated narrations being presented as authentic. Such mistakes go against the precision and trust that the study of Hadith requires.",
-                )}
-              </p>
-              <p>
-                {t(
-                  "Hadith AI was created to address this concern by providing a reliable and transparent tool that only retrieves Hadith directly from Sunnah.com, a trusted and well-recognized source for authentic Islamic texts. The goal is not to replace traditional scholarship, but to make genuine Hadith knowledge more accessible, accurate, and easy to explore in the digital age.",
-                )}
-              </p>
-              <p>
-                {t(
-                  "By combining verified sources with modern technology, Hadith AI aims to support students, teachers, and researchers in their pursuit of authentic Islamic understanding, while maintaining full respect for the integrity of religious knowledge and the guidance of scholars.",
-                )}
-              </p>
-            </div>
-              <div className="bg-card border border-accent/20 rounded-lg p-6 space-y-4">
-                <p className="font-semibold text-foreground">
-                  {t("This tool is designed for:")}
-                </p>
-                <ul className="space-y-2 text-sm">
-                  <li>{t("✓ Students and researchers studying Hadith")}</li>
-                  <li>
-                    {t(
-                      "✓ Anyone seeking quick, verified references from authentic sources",
-                    )}
-                  </li>
-                  <li>
-                    {t("✓ Those who want to learn about the Prophet's ﷺ teachings")}
-                  </li>
-                </ul>
-                <p className="text-sm italic border-t border-border/30 pt-4 text-destructive">
-                  {t(
-                    "⚠️ Important: This is not a fatwa-issuing service. We provide Hadith references only. For religious rulings, please consult qualified scholars.",
-                  )}
-                </p>
-              </div>
-
-              {/* Sources Section */}
-              <div id="sources" className="mt-12 pt-8 border-t border-border/30">
-                <h3 className="text-xl font-bold text-foreground mb-6">
-                  {t("List of Sources")}
-                </h3>
-                <div className="space-y-4">
-                  <div className="bg-background/50 border border-border/40 rounded-lg p-5">
-                    <div className="flex items-start gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
-                        1
-                      </span>
-                      <div>
-                        <a 
-                          href="https://sunnah.com" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-lg font-semibold text-accent hover:text-accent/80 transition-colors"
-                        >
-                          Sunnah.com
-                        </a>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {t(
-                            "A comprehensive online database of Hadith collections, featuring authenticated texts from major compilations including Sahih Bukhari, Sahih Muslim, Sunan Abu Dawud, and more. Each hadith includes Arabic text, English translations, and detailed chain of narration information.",
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-background/50 border border-border/40 rounded-lg p-5">
-                    <div className="flex items-start gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
-                        2
-                      </span>
-                      <div>
-                        <a 
-                          href="https://quran.com" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-lg font-semibold text-accent hover:text-accent/80 transition-colors"
-                        >
-                          Quran.com
-                        </a>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {t(
-                            "A trusted platform for reading and studying the Holy Quran, offering multiple translations, audio recitations by renowned Qaris, and detailed tafsir (exegesis). Features include word-by-word analysis, transliteration, and personalized reading progress tracking.",
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <p className="text-muted-foreground">
+              {t("Clear sections for AI, Articles, Ilm, and Adhkaar with calm navigation.")}
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
+            {[
+              {
+                title: t("SunnahMind AI"),
+                description: t("Ask questions with cited hadith and Quran verses."),
+                to: "/ai",
+              },
+              {
+                title: t("SunnahMind Articles"),
+                description: t("Timeless articles built for reflection."),
+                to: "/articles",
+              },
+              {
+                title: t("SunnahMind ‘Ilm"),
+                description: t("Structured learning paths for daily study."),
+                to: "/ilm",
+              },
+              {
+                title: t("SunnahMind Adhkaar"),
+                description: t("Morning, evening, and gratitude remembrances."),
+                to: "/adhkaar",
+              },
+            ].map((item) => (
+              <button
+                key={item.title}
+                onClick={() => navigate(item.to)}
+                className="bg-card border border-border/60 rounded-2xl p-6 text-left hover:border-accent/40 hover:shadow-gold-glow transition-all"
+              >
+                <h3 className="text-xl font-semibold">{item.title}</h3>
+                <p className="text-sm text-muted-foreground mt-2">{item.description}</p>
+              </button>
+            ))}
           </div>
         </div>
       </section>
@@ -226,16 +129,10 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center space-y-4">
             <p className="text-sm text-muted-foreground">
-              {t("All hadith content sourced from")}{" "}
-              <a 
-                href="#sources"
-                className="text-accent hover:text-accent/80 font-medium transition-colors"
-              >
-                {t("sources")}
-              </a>
+              {t("All hadith content sourced from Sunnah.com, Quran content from Quran.com.")}
             </p>
             <p className="text-xs text-muted-foreground">
-              {t("© 2025 Hadith AI. For educational purposes only.")}
+              {t("© 2025 SunnahMind. For educational purposes only.")}
             </p>
           </div>
         </div>

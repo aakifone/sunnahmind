@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { ExternalLink, BookOpen, ChevronDown, Play, Pause, Volume2, Languages } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ExternalLink, BookOpen, ChevronDown, Play, Pause, Volume2, Languages, BookmarkPlus, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,6 +16,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useTranslate } from "@/hooks/useTranslate";
+import { useContentLanguages } from "@/hooks/useContentLanguages";
+import { useSavedForLater } from "@/hooks/useSavedForLater";
+import { useNavigate } from "react-router-dom";
 
 export interface QuranCitationData {
   surahNumber: number;
@@ -47,6 +50,13 @@ const RECITERS = [
   { id: "abdulbasit", name: "Abdul Basit" },
 ];
 
+const TRANSLATION_IDS: Record<string, number> = {
+  en: 131,
+  ur: 95,
+  tr: 137,
+  fr: 136,
+};
+
 const QuranCitation = ({ citation }: QuranCitationProps) => {
   const [viewMode, setViewMode] = useState<"translation" | "tafsir">("translation");
   const [tafsirContent, setTafsirContent] = useState<string | null>(null);
@@ -57,6 +67,9 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { t } = useTranslate();
+  const { saveForLater } = useSavedForLater();
+  const navigate = useNavigate();
+  const { languages, updateLanguage } = useContentLanguages();
   
   // Word-by-word state
   const [showWordByWord, setShowWordByWord] = useState(false);
@@ -103,6 +116,7 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
           surahNumber: citation.surahNumber,
           ayahNumber: citation.ayahNumber,
           type: "wordbyword",
+          wordTranslationLanguage: languages.quran,
         },
       });
 
@@ -192,6 +206,40 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
       setIsPlaying(false);
     }
   };
+
+  const fetchTranslation = async (languageCode: string) => {
+    setIsLoadingContent(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("quran-fetch", {
+        body: {
+          surahNumber: citation.surahNumber,
+          ayahNumber: citation.ayahNumber,
+          type: "translation",
+          translationId: TRANSLATION_IDS[languageCode] ?? TRANSLATION_IDS.en,
+        },
+      });
+
+      if (error) throw error;
+      setTranslationContent(
+        data.translation || t("Translation not available for this verse."),
+      );
+    } catch (err) {
+      console.error("Error fetching translation:", err);
+      toast({
+        title: t("Error"),
+        description: t("Failed to load translation. Please try again."),
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingContent(false);
+    }
+  };
+
+  useEffect(() => {
+    if (languages.quran !== "en") {
+      void fetchTranslation(languages.quran);
+    }
+  }, [languages.quran, citation.ayahNumber, citation.surahNumber]);
 
   return (
     <div className="border border-emerald-500/30 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 hover:border-emerald-500/50 transition-all shadow-sm hover:shadow-md">
@@ -283,7 +331,7 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
       {/* Translation/Tafsir Toggle and Content */}
       <div className="px-4 pb-4">
         {/* View Toggle Dropdown */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 gap-1 text-xs bg-background/50">
@@ -305,6 +353,34 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
               >
                 {t("Tafsir (Ibn Kathir)")}
               </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1 text-xs bg-background/50">
+                <Languages className="w-3 h-3" />
+                {t("Translation")}
+                <ChevronDown className="w-3 h-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-popover border border-border z-50">
+              {[
+                { value: "en", label: t("English") },
+                { value: "ur", label: t("Urdu") },
+                { value: "tr", label: t("Turkish") },
+                { value: "fr", label: t("French") },
+              ].map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => {
+                    updateLanguage("quran", option.value);
+                    void fetchTranslation(option.value);
+                  }}
+                  className={languages.quran === option.value ? "bg-accent" : ""}
+                >
+                  {option.label}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -364,6 +440,30 @@ const QuranCitation = ({ citation }: QuranCitationProps) => {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            saveForLater({
+              type: "quran",
+              title: `${citation.surahName} ${citation.surahNumber}:${citation.ayahNumber}`,
+              content: `${citation.arabicText}\n${citation.translation}`,
+            })
+          }
+          className="h-8 gap-2 text-xs bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50"
+        >
+          <BookmarkPlus className="w-3 h-3" />
+          {t("Save")}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/wallpaper")}
+          className="h-8 gap-2 text-xs bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50"
+        >
+          <ImageIcon className="w-3 h-3" />
+          {t("Wallpaper")}
+        </Button>
       </div>
     </div>
   );
