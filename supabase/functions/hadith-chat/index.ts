@@ -10,6 +10,63 @@ const TRANSLATE_ENDPOINTS = [
   "https://translate.argosopentech.com/translate",
 ];
 
+const HADITH_COLLECTIONS: Array<{ pattern: RegExp; label: string; slug: string }> = [
+  { pattern: /sahih\s*al?-?\s*bukhari|sahih\s*bukhari|bukhari/i, label: "Sahih Bukhari", slug: "bukhari" },
+  { pattern: /sahih\s*muslim|muslim/i, label: "Sahih Muslim", slug: "muslim" },
+  { pattern: /abu\s*dawud|abudawud/i, label: "Sunan Abi Dawud", slug: "abudawud" },
+  { pattern: /tirmidhi|al-?tirmidhi/i, label: "Jami at-Tirmidhi", slug: "tirmidhi" },
+  { pattern: /nasai|nasa'?i/i, label: "Sunan an-Nasa'i", slug: "nasai" },
+  { pattern: /ibn\s*majah/i, label: "Sunan Ibn Majah", slug: "ibnmajah" },
+  { pattern: /riyad\s*(as-)?\s*salihin|riyadussalihin/i, label: "Riyad as-Salihin", slug: "riyadussalihin" },
+];
+
+const parseAyahCode = (input: string): { surahNumber: number; ayahNumber: number; url: string } | null => {
+  const match = input.trim().match(/^\s*(\d{1,3})\s*[:/]\s*(\d{1,3})\s*$/);
+  if (!match) return null;
+
+  const surahNumber = Number(match[1]);
+  const ayahNumber = Number(match[2]);
+
+  if (
+    Number.isNaN(surahNumber) ||
+    Number.isNaN(ayahNumber) ||
+    surahNumber < 1 ||
+    surahNumber > 114 ||
+    ayahNumber < 1 ||
+    ayahNumber > 286
+  ) {
+    return null;
+  }
+
+  return {
+    surahNumber,
+    ayahNumber,
+    url: `https://quran.com/${surahNumber}/${ayahNumber}`,
+  };
+};
+
+const parseHadithCode = (
+  input: string,
+): { collection: string; hadithNumber: string; slug: string; url: string } | null => {
+  const trimmed = input.trim();
+  const numberMatch = trimmed.match(/(\d{1,6})\s*$/);
+  if (!numberMatch) return null;
+
+  const hadithNumber = numberMatch[1];
+  const collectionText = trimmed.slice(0, numberMatch.index).trim();
+  if (!collectionText) return null;
+
+  const collection = HADITH_COLLECTIONS.find((entry) => entry.pattern.test(collectionText));
+  if (!collection) return null;
+
+  return {
+    collection: collection.label,
+    hadithNumber,
+    slug: collection.slug,
+    url: `https://sunnah.com/${collection.slug}:${hadithNumber}`,
+  };
+};
+
 // Function to provide context about searching sunnah.com
 function getSunnahComContext(query: string): string {
   const searchUrl = `https://sunnah.com/search?q=${encodeURIComponent(query)}`;
@@ -101,6 +158,64 @@ serve(async (req) => {
     // Check if the message is a greeting
     const greetingPatterns = /^(hi|hello|hey|salam|salaam|assalam|assalamu alaikum|as-salamu alaykum|wa alaikum salam|hola|bonjour|salut|ciao|hallo|namaste|greetings|good morning|good afternoon|good evening)\b/i;
     const isGreeting = greetingPatterns.test(userQuestion.trim());
+
+    const ayahCode = parseAyahCode(userQuestion);
+    if (ayahCode) {
+      const englishResponse = `Description: Quran reference detected for Surah ${ayahCode.surahNumber}, Ayah ${ayahCode.ayahNumber}.\n\nExplanation: This looks like an ayah code in Surah:Ayah format, so here is the direct source link from quran.com.\n\nlink::${ayahCode.url}`;
+      const translatedResponse =
+        targetLanguageCode === "en"
+          ? englishResponse
+          : await translateText(englishResponse, targetLanguageCode);
+
+      return new Response(
+        JSON.stringify({
+          content: translatedResponse,
+          citations: [],
+          quranCitations: [
+            {
+              surahNumber: ayahCode.surahNumber,
+              ayahNumber: ayahCode.ayahNumber,
+              surahName: "",
+              ayahName: "",
+              arabicText: "",
+              translation: "",
+              url: ayahCode.url,
+            },
+          ],
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const hadithCode = parseHadithCode(userQuestion);
+    if (hadithCode) {
+      const englishResponse = `Description: Hadith reference detected for ${hadithCode.collection} #${hadithCode.hadithNumber}.\n\nExplanation: You entered a hadith collection name with a hadith number, so here is the direct source link from sunnah.com.\n\nlink::${hadithCode.url}`;
+      const translatedResponse =
+        targetLanguageCode === "en"
+          ? englishResponse
+          : await translateText(englishResponse, targetLanguageCode);
+
+      return new Response(
+        JSON.stringify({
+          content: translatedResponse,
+          citations: [
+            {
+              collection: hadithCode.collection,
+              hadithNumber: hadithCode.hadithNumber,
+              url: hadithCode.url,
+              translation: "",
+              arabic: "",
+            },
+          ],
+          quranCitations: [],
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     if (isGreeting) {
       console.log("Greeting detected, returning specific hadiths");
